@@ -90,7 +90,7 @@ def parse_int(value, default=0):
         return default
 
 
-def clamp_limit(value, default=20, maximum=100):
+def clamp_limit(value, default=5000, maximum=5000):
     return max(1, min(parse_int(value, default), maximum))
 
 

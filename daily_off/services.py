@@ -262,7 +262,7 @@ def refresh_run_status(run, *, explicit_status=None, notes=None, finish=False):
 
 @transaction.atomic
 def claim_pending_analysis(*, limit=20, run_key=None):
-    limit = max(1, min(as_int(limit, 20), 100))
+    limit = max(1, min(as_int(limit, 5000), 5000))
     queryset = DailyProductSnapshot.objects.filter(
         fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
         analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
