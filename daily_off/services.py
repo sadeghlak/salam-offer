@@ -1,12 +1,18 @@
 from datetime import date
 
 from django.db import transaction
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from .models import DailyProductSnapshot, DailyRun, Product
 
 
 COUNT_UNITS = {'عددی', 'عدد', 'بسته', 'جفت'}
+TERMINAL_ANALYSIS_STATUSES = {
+    DailyProductSnapshot.AnalysisStatus.ANALYZED,
+    DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+    DailyProductSnapshot.AnalysisStatus.ERROR,
+}
 
 
 def nested_get(data, path, default=''):
@@ -44,6 +50,12 @@ def as_bool(value):
     if value in (1, '1', 'true', 'True', 'yes'):
         return True
     return False
+
+
+def clean_string(value):
+    if value in (None, False):
+        return ''
+    return str(value).strip()
 
 
 def product_url(product_id, vendor_identifier=''):
@@ -116,7 +128,7 @@ def normalize_product(raw_product):
         'category_list_text': raw_product.get('product_category_list_text') or category_list_text(raw_product),
         'raw_json': raw_product,
         'details_status': raw_product.get('details_status') or 'DETAILS_FETCHED',
-        'status_row': raw_product.get('status_row') or 'analysis_pending',
+        'status_row': raw_product.get('status_row') or DailyProductSnapshot.AnalysisStatus.PENDING,
     }
 
 
@@ -177,9 +189,7 @@ def store_product_snapshot(*, run, raw_product, business_date=None):
         defaults=snapshot_defaults,
     )
 
-    run.fetched_count = run.snapshots.filter(fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED).count()
-    run.error_count = run.snapshots.filter(fetch_status=DailyProductSnapshot.FetchStatus.FETCH_ERROR).count()
-    run.save(update_fields=['fetched_count', 'error_count', 'updated_at'])
+    refresh_run_status(run)
     return snapshot
 
 
@@ -200,6 +210,152 @@ def mark_product_fetch_error(*, run, product_id, error_message, business_date=No
             'error_message': error_message,
         },
     )
+    refresh_run_status(run)
+    return snapshot
+
+
+def analysis_counts_for_run(run):
+    counts = {
+        DailyProductSnapshot.AnalysisStatus.PENDING: 0,
+        DailyProductSnapshot.AnalysisStatus.RUNNING: 0,
+        DailyProductSnapshot.AnalysisStatus.ANALYZED: 0,
+        DailyProductSnapshot.AnalysisStatus.NO_MATCH: 0,
+        DailyProductSnapshot.AnalysisStatus.ERROR: 0,
+    }
+    rows = run.snapshots.values('analysis_status').annotate(total=Count('id'))
+    for row in rows:
+        counts[row['analysis_status']] = row['total']
+    return counts
+
+
+@transaction.atomic
+def refresh_run_status(run, *, explicit_status=None, notes=None, finish=False):
+    run.fetched_count = run.snapshots.filter(fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED).count()
     run.error_count = run.snapshots.filter(fetch_status=DailyProductSnapshot.FetchStatus.FETCH_ERROR).count()
-    run.save(update_fields=['error_count', 'updated_at'])
+
+    if notes is not None:
+        run.notes = notes
+
+    if explicit_status:
+        run.status = explicit_status
+    elif finish:
+        total = run.snapshots.count()
+        counts = analysis_counts_for_run(run)
+        unfinished = counts[DailyProductSnapshot.AnalysisStatus.PENDING] + counts[DailyProductSnapshot.AnalysisStatus.RUNNING]
+        error_total = run.error_count + counts[DailyProductSnapshot.AnalysisStatus.ERROR]
+
+        if total and error_total >= total:
+            run.status = DailyRun.Status.FAILED
+        elif error_total:
+            run.status = DailyRun.Status.PARTIAL_FAILED
+        elif unfinished == 0:
+            run.status = DailyRun.Status.COMPLETED
+        else:
+            run.status = DailyRun.Status.RUNNING
+
+    if finish or run.status in {DailyRun.Status.COMPLETED, DailyRun.Status.PARTIAL_FAILED, DailyRun.Status.FAILED}:
+        run.finished_at = timezone.now()
+
+    run.save(update_fields=['fetched_count', 'error_count', 'status', 'notes', 'finished_at', 'updated_at'])
+    return run
+
+
+@transaction.atomic
+def claim_pending_analysis(*, limit=20, run_key=None):
+    limit = max(1, min(as_int(limit, 20), 100))
+    queryset = DailyProductSnapshot.objects.filter(
+        fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
+        analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
+    )
+    if run_key:
+        queryset = queryset.filter(run__run_key=run_key)
+
+    snapshot_ids = list(queryset.order_by('business_date', 'id').values_list('id', flat=True)[:limit])
+    if not snapshot_ids:
+        return []
+
+    DailyProductSnapshot.objects.filter(
+        id__in=snapshot_ids,
+        analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
+    ).update(
+        analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
+        status_row=DailyProductSnapshot.AnalysisStatus.RUNNING,
+        updated_at=timezone.now(),
+    )
+
+    return list(
+        DailyProductSnapshot.objects.filter(
+            id__in=snapshot_ids,
+            analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
+        ).select_related('run', 'product').order_by('business_date', 'id')
+    )
+
+
+def find_snapshot(*, snapshot_id=None, run_key=None, product_id=None):
+    queryset = DailyProductSnapshot.objects.select_related('run', 'product')
+    if snapshot_id:
+        return queryset.get(id=snapshot_id)
+    if run_key and product_id:
+        return queryset.get(run__run_key=run_key, source_product_id=product_id)
+    raise ValueError('snapshot_id or run_key/product_id is required')
+
+
+@transaction.atomic
+def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, result=None):
+    result = result or {}
+    nested_result = result.get('result') if isinstance(result.get('result'), dict) else {}
+    data = {**result, **nested_result}
+
+    snapshot = find_snapshot(
+        snapshot_id=snapshot_id or data.get('snapshot_id'),
+        run_key=run_key or data.get('run_key'),
+        product_id=product_id or data.get('product_id') or data.get('source_product_id'),
+    )
+
+    product_url1 = clean_string(data.get('product_url1'))
+    product_url2 = clean_string(data.get('product_url2'))
+    product_url3 = clean_string(data.get('product_url3'))
+    accepted_count = as_int(data.get('accepted_candidates_count'), 0)
+    has_result = bool(product_url1 or product_url2 or product_url3 or accepted_count > 0)
+
+    requested_status = clean_string(data.get('analysis_status'))
+    allowed_statuses = {
+        DailyProductSnapshot.AnalysisStatus.ANALYZED,
+        DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+        DailyProductSnapshot.AnalysisStatus.ERROR,
+    }
+    if requested_status in allowed_statuses:
+        analysis_status = requested_status
+    else:
+        analysis_status = DailyProductSnapshot.AnalysisStatus.ANALYZED if has_result else DailyProductSnapshot.AnalysisStatus.NO_MATCH
+
+    snapshot.product_url1 = product_url1
+    snapshot.product_url2 = product_url2
+    snapshot.product_url3 = product_url3
+    snapshot.accepted_candidates_count = accepted_count
+    snapshot.analysis_status = analysis_status
+    snapshot.status_row = clean_string(data.get('status_row')) or analysis_status
+    snapshot.error_message = clean_string(data.get('error_message')) if analysis_status == DailyProductSnapshot.AnalysisStatus.ERROR else ''
+    snapshot.save(update_fields=[
+        'product_url1',
+        'product_url2',
+        'product_url3',
+        'accepted_candidates_count',
+        'analysis_status',
+        'status_row',
+        'error_message',
+        'updated_at',
+    ])
+    refresh_run_status(snapshot.run)
+    return snapshot
+
+
+@transaction.atomic
+def mark_analysis_error(*, snapshot_id=None, run_key=None, product_id=None, error_message=''):
+    snapshot = find_snapshot(snapshot_id=snapshot_id, run_key=run_key, product_id=product_id)
+    snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.ERROR
+    snapshot.status_row = DailyProductSnapshot.AnalysisStatus.ERROR
+    snapshot.error_message = clean_string(error_message) or 'unknown analysis error'
+    snapshot.save(update_fields=['analysis_status', 'status_row', 'error_message', 'updated_at'])
+    refresh_run_status(snapshot.run)
     return snapshot

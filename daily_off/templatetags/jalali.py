@@ -86,5 +86,7 @@ def status_label(value):
         'analysis_error': 'خطای تحلیل',
         'details_fetched': 'جزئیات دریافت شد',
         'fetch_error': 'خطای دریافت جزئیات',
+        'DETAILS_FETCHED': 'جزئیات دریافت شد',
+        'DETAILS_ERROR': 'خطای دریافت جزئیات',
     }
     return labels.get(value, value or '-')

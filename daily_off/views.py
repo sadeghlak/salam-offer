@@ -1,6 +1,8 @@
 import json
 from datetime import date
 
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.dateparse import parse_date
@@ -8,7 +10,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import DailyProductSnapshot, DailyRun, Product
-from .services import create_or_update_run, mark_product_fetch_error, store_product_snapshot
+from .services import (
+    analysis_counts_for_run,
+    claim_pending_analysis,
+    create_or_update_run,
+    mark_analysis_error,
+    mark_product_fetch_error,
+    refresh_run_status,
+    store_analysis_result,
+    store_product_snapshot,
+)
 
 
 def snapshot_to_workflow_payload(item):
@@ -69,6 +80,42 @@ def parse_business_date(value):
     return parsed or date.today()
 
 
+def parse_int(value, default=0):
+    try:
+        if value in (None, ''):
+            return default
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def clamp_limit(value, default=20, maximum=100):
+    return max(1, min(parse_int(value, default), maximum))
+
+
+def counts_for_queryset(queryset):
+    counts = {
+        'analysis_pending': 0,
+        'analysis_running': 0,
+        'analyzed': 0,
+        'no_match': 0,
+        'analysis_error': 0,
+    }
+    for row in queryset.values('analysis_status').annotate(total=Count('id')):
+        counts[row['analysis_status']] = row['total']
+    return counts
+
+
+def compact_analysis_summary(counts):
+    return {
+        'pending': counts.get(DailyProductSnapshot.AnalysisStatus.PENDING, counts.get('analysis_pending', 0)),
+        'running': counts.get(DailyProductSnapshot.AnalysisStatus.RUNNING, counts.get('analysis_running', 0)),
+        'analyzed': counts.get(DailyProductSnapshot.AnalysisStatus.ANALYZED, counts.get('analyzed', 0)),
+        'no_match': counts.get(DailyProductSnapshot.AnalysisStatus.NO_MATCH, counts.get('no_match', 0)),
+        'error': counts.get(DailyProductSnapshot.AnalysisStatus.ERROR, counts.get('analysis_error', 0)),
+    }
+
+
 @csrf_exempt
 @require_POST
 def api_create_run(request):
@@ -79,7 +126,7 @@ def api_create_run(request):
     run = create_or_update_run(
         business_date=parse_business_date(payload.get('business_date')),
         run_key=payload.get('run_key') or None,
-        input_count=int(payload.get('input_count') or 0),
+        input_count=parse_int(payload.get('input_count')),
         status=payload.get('status') or DailyRun.Status.RUNNING,
         config_json=payload.get('config_json') or {},
         notes=payload.get('notes') or '',
@@ -124,7 +171,7 @@ def api_product_error(request):
     run = get_object_or_404(DailyRun, run_key=payload.get('run_key'))
     snapshot = mark_product_fetch_error(
         run=run,
-        product_id=int(payload.get('product_id') or 0),
+        product_id=parse_int(payload.get('product_id')),
         error_message=payload.get('error_message') or 'unknown error',
         business_date=run.business_date,
     )
@@ -133,7 +180,7 @@ def api_product_error(request):
 
 @require_GET
 def api_pending_analysis(request):
-    limit = int(request.GET.get('limit') or 20)
+    limit = clamp_limit(request.GET.get('limit'))
     items = DailyProductSnapshot.objects.filter(
         analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
         fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
@@ -145,13 +192,132 @@ def api_pending_analysis(request):
     })
 
 
+@csrf_exempt
+@require_POST
+def api_claim_analysis(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    try:
+        items = claim_pending_analysis(
+            limit=clamp_limit(payload.get('limit')),
+            run_key=payload.get('run_key') or None,
+        )
+    except (ValidationError, ValueError) as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+
+    return JsonResponse({
+        'ok': True,
+        'claimed_count': len(items),
+        'items': [snapshot_to_workflow_payload(item) for item in items],
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_analysis_result(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    try:
+        snapshot = store_analysis_result(
+            snapshot_id=payload.get('snapshot_id'),
+            run_key=payload.get('run_key'),
+            product_id=payload.get('product_id') or payload.get('source_product_id'),
+            result=payload,
+        )
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    except (ObjectDoesNotExist, ValidationError):
+        return JsonResponse({'ok': False, 'error': 'snapshot_not_found'}, status=404)
+
+    return JsonResponse({
+        'ok': True,
+        'snapshot_id': snapshot.id,
+        'product_id': snapshot.source_product_id,
+        'analysis_status': snapshot.analysis_status,
+        'accepted_candidates_count': snapshot.accepted_candidates_count,
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_analysis_error(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    try:
+        snapshot = mark_analysis_error(
+            snapshot_id=payload.get('snapshot_id'),
+            run_key=payload.get('run_key'),
+            product_id=payload.get('product_id') or payload.get('source_product_id'),
+            error_message=payload.get('error_message') or 'unknown analysis error',
+        )
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    except (ObjectDoesNotExist, ValidationError):
+        return JsonResponse({'ok': False, 'error': 'snapshot_not_found'}, status=404)
+
+    return JsonResponse({
+        'ok': True,
+        'snapshot_id': snapshot.id,
+        'product_id': snapshot.source_product_id,
+        'analysis_status': snapshot.analysis_status,
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_finish_run(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    run_key = payload.get('run_key')
+    if not run_key:
+        return JsonResponse({'ok': False, 'error': 'run_key_required'}, status=400)
+
+    run = get_object_or_404(DailyRun, run_key=run_key)
+    status = payload.get('status') or None
+    allowed_statuses = {choice[0] for choice in DailyRun.Status.choices}
+    if status and status not in allowed_statuses:
+        return JsonResponse({'ok': False, 'error': 'invalid_status'}, status=400)
+
+    run = refresh_run_status(
+        run,
+        explicit_status=status,
+        notes=payload.get('notes') if 'notes' in payload else None,
+        finish=True,
+    )
+    return JsonResponse({
+        'ok': True,
+        'run_key': str(run.run_key),
+        'status': run.status,
+        'input_count': run.input_count,
+        'fetched_count': run.fetched_count,
+        'error_count': run.error_count,
+        'analysis': compact_analysis_summary(analysis_counts_for_run(run)),
+    })
+
+
 def dashboard_home(request):
-    runs = DailyRun.objects.all()[:20]
+    runs = list(DailyRun.objects.all()[:20])
+    for run in runs:
+        run.analysis_summary = compact_analysis_summary(analysis_counts_for_run(run))
+
     totals = {
         'runs': DailyRun.objects.count(),
         'products': Product.objects.count(),
         'snapshots': DailyProductSnapshot.objects.count(),
         'pending_analysis': DailyProductSnapshot.objects.filter(analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING).count(),
+        'running_analysis': DailyProductSnapshot.objects.filter(analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING).count(),
+        'analyzed': DailyProductSnapshot.objects.filter(analysis_status=DailyProductSnapshot.AnalysisStatus.ANALYZED).count(),
+        'no_match': DailyProductSnapshot.objects.filter(analysis_status=DailyProductSnapshot.AnalysisStatus.NO_MATCH).count(),
+        'analysis_errors': DailyProductSnapshot.objects.filter(analysis_status=DailyProductSnapshot.AnalysisStatus.ERROR).count(),
+        'fetch_errors': DailyProductSnapshot.objects.filter(fetch_status=DailyProductSnapshot.FetchStatus.FETCH_ERROR).count(),
     }
     return render(request, 'daily_off/dashboard.html', {'runs': runs, 'totals': totals})
 
@@ -162,6 +328,9 @@ def run_detail(request, run_key):
 
     category = request.GET.get('category') or ''
     analysis_status = request.GET.get('analysis_status') or ''
+    fetch_status = request.GET.get('fetch_status') or ''
+    result_state = request.GET.get('result_state') or ''
+    q = (request.GET.get('q') or '').strip()
 
     category_options = list(
         base_snapshots.exclude(category_title='')
@@ -175,20 +344,50 @@ def run_detail(request, run_key):
         .values_list('analysis_status', flat=True)
         .distinct()
     )
+    fetch_status_options = list(
+        base_snapshots.exclude(fetch_status='')
+        .order_by('fetch_status')
+        .values_list('fetch_status', flat=True)
+        .distinct()
+    )
+
+    run_counts = counts_for_queryset(base_snapshots)
+    run_summary = {
+        **compact_analysis_summary(run_counts),
+        'total': base_snapshots.count(),
+        'fetch_errors': base_snapshots.filter(fetch_status=DailyProductSnapshot.FetchStatus.FETCH_ERROR).count(),
+    }
 
     snapshots = base_snapshots
     if category:
         snapshots = snapshots.filter(category_title=category)
     if analysis_status:
         snapshots = snapshots.filter(analysis_status=analysis_status)
+    if fetch_status:
+        snapshots = snapshots.filter(fetch_status=fetch_status)
+    if result_state == 'has_result':
+        snapshots = snapshots.filter(Q(product_url1__gt='') | Q(product_url2__gt='') | Q(product_url3__gt=''))
+    elif result_state == 'no_result':
+        snapshots = snapshots.filter(product_url1='', product_url2='', product_url3='')
+    if q:
+        search_filter = Q(title__icontains=q) | Q(vendor_name__icontains=q)
+        if q.isdigit():
+            search_filter |= Q(source_product_id=int(q)) | Q(id=int(q))
+        snapshots = snapshots.filter(search_filter)
 
     return render(request, 'daily_off/run_detail.html', {
         'run': run,
         'snapshots': snapshots,
         'category_options': category_options,
         'status_options': status_options,
+        'fetch_status_options': fetch_status_options,
         'selected_category': category,
         'selected_analysis_status': analysis_status,
+        'selected_fetch_status': fetch_status,
+        'selected_result_state': result_state,
+        'q': q,
+        'run_summary': run_summary,
+        'shown_count': snapshots.count(),
     })
 
 

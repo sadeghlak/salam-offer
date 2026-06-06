@@ -7,17 +7,25 @@
         <h1>اجرای {{ run.business_date|jalali_date }}</h1>
         <p class="muted">Run Key: {{ run.run_key }}</p>
     </div>
-    <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' %}error{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
+    <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' or run.status == 'partial_failed' %}error{% elif run.status == 'running' %}info{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
 </div>
 
 <div class="grid">
     <div class="card"><span class="metric-label">ورودی</span><div class="metric">{{ run.input_count }}</div></div>
+    <div class="card"><span class="metric-label">کل محصولات اجرا</span><div class="metric">{{ run_summary.total }}</div></div>
     <div class="card"><span class="metric-label">جزئیات موفق</span><div class="metric">{{ run.fetched_count }}</div></div>
-    <div class="card"><span class="metric-label">خطا</span><div class="metric">{{ run.error_count }}</div></div>
-    <div class="card"><span class="metric-label">تعداد نمایش داده‌شده</span><div class="metric">{{ snapshots|length }}</div></div>
+    <div class="card"><span class="metric-label">خطای دریافت</span><div class="metric">{{ run_summary.fetch_errors }}</div></div>
+    <div class="card"><span class="metric-label">در انتظار تحلیل</span><div class="metric">{{ run_summary.pending }}</div></div>
+    <div class="card"><span class="metric-label">در حال تحلیل</span><div class="metric">{{ run_summary.running }}</div></div>
+    <div class="card"><span class="metric-label">تحلیل شده</span><div class="metric">{{ run_summary.analyzed }}</div></div>
+    <div class="card"><span class="metric-label">بدون نتیجه / خطا</span><div class="metric">{{ run_summary.no_match }} / {{ run_summary.error }}</div></div>
 </div>
 
 <form class="filter-bar" method="get">
+    <div class="field">
+        <label>جستجو</label>
+        <input class="inline-field" type="search" name="q" value="{{ q }}" placeholder="عنوان، فروشنده، product id یا snapshot id">
+    </div>
     <div class="field">
         <label>فیلتر دسته‌بندی</label>
         <select name="category">
@@ -36,11 +44,28 @@
             {% endfor %}
         </select>
     </div>
+    <div class="field">
+        <label>وضعیت دریافت</label>
+        <select name="fetch_status">
+            <option value="">همه وضعیت‌ها</option>
+            {% for option in fetch_status_options %}
+                <option value="{{ option }}" {% if selected_fetch_status == option %}selected{% endif %}>{{ option|status_label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>نتیجه</label>
+        <select name="result_state">
+            <option value="" {% if not selected_result_state %}selected{% endif %}>همه</option>
+            <option value="has_result" {% if selected_result_state == 'has_result' %}selected{% endif %}>دارای لینک خروجی</option>
+            <option value="no_result" {% if selected_result_state == 'no_result' %}selected{% endif %}>بدون لینک خروجی</option>
+        </select>
+    </div>
     <button class="btn" type="submit">اعمال فیلتر</button>
     <a class="btn secondary" href="{% url 'daily_off:run_detail' run.run_key %}">پاک کردن</a>
 </form>
 
-<h2>محصولات این اجرا</h2>
+<h2>محصولات این اجرا <span class="muted">({{ shown_count }} مورد نمایش داده شده)</span></h2>
 <div class="table-card">
 <table>
     <thead>
@@ -50,7 +75,7 @@
         <th>قیمت اصلی</th>
         <th>دسته‌بندی</th>
         <th>فروشنده</th>
-        <th>وضعیت تحلیل</th>
+        <th>وضعیت‌ها</th>
         <th>نتایج مشابه ارزان‌تر</th>
     </tr>
     </thead>
@@ -62,7 +87,7 @@
                     {% if item.photo_url %}<img class="product" src="{{ item.photo_url }}" alt="{{ item.title }}">{% endif %}
                     <div>
                         <a class="product-title" href="{% url 'daily_off:product_detail' item.source_product_id %}">{{ item.title }}</a>
-                        <div class="muted">ID: {{ item.source_product_id }}</div>
+                        <div class="muted">Product ID: {{ item.source_product_id }} | Snapshot ID: {{ item.id }}</div>
                         {% if item.product.latest_product_url %}<a class="tiny-link" href="{{ item.product.latest_product_url }}" target="_blank">مشاهده در باسلام ↗</a>{% endif %}
                     </div>
                 </div>
@@ -71,14 +96,23 @@
             <td><span class="price-label">قیمت قبل</span><span class="primary-price">{{ item.primary_price|toman }}</span></td>
             <td>{{ item.category_title }}<div class="muted">{{ item.category_parent_title }}</div></td>
             <td>{{ item.vendor_name }}<div class="muted">{{ item.vendor_city }}{% if item.vendor_province %}، {{ item.vendor_province }}{% endif %}</div></td>
-            <td><span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% else %}pending{% endif %}">{{ item.analysis_status|status_label }}</span></td>
+            <td>
+                <div class="result-links">
+                    <span class="badge {% if item.fetch_status == 'details_fetched' %}ok{% else %}error{% endif %}">{{ item.fetch_status|status_label }}</span>
+                    <span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% elif item.analysis_status == 'analysis_running' %}info{% elif item.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}">{{ item.analysis_status|status_label }}</span>
+                    <span class="badge gray">{{ item.status_row|status_label }}</span>
+                    {% if item.error_message %}<div class="error-note">{{ item.error_message|truncatechars:180 }}</div>{% endif %}
+                </div>
+            </td>
             <td>
                 <div class="result-links">
                     {% if item.product_url1 %}<a class="result-link" href="{{ item.product_url1 }}" target="_blank">نتیجه ۱</a>{% endif %}
                     {% if item.product_url2 %}<a class="result-link" href="{{ item.product_url2 }}" target="_blank">نتیجه ۲</a>{% endif %}
                     {% if item.product_url3 %}<a class="result-link" href="{{ item.product_url3 }}" target="_blank">نتیجه ۳</a>{% endif %}
-                    {% if not item.product_url1 and not item.product_url2 and not item.product_url3 %}<span class="badge gray">در انتظار تحلیل</span>{% endif %}
                     {% if item.accepted_candidates_count %}<span class="muted">{{ item.accepted_candidates_count }} نتیجه پذیرفته‌شده</span>{% endif %}
+                    {% if not item.product_url1 and not item.product_url2 and not item.product_url3 %}
+                        {% if item.analysis_status == 'analysis_pending' %}<span class="badge pending">در صف تحلیل</span>{% elif item.analysis_status == 'analysis_running' %}<span class="badge info">در حال تحلیل</span>{% elif item.analysis_status == 'no_match' %}<span class="badge gray">محصول مشابه ارزان‌تر پیدا نشد</span>{% elif item.analysis_status == 'analysis_error' %}<span class="badge error">خطای تحلیل</span>{% else %}<span class="badge gray">بدون لینک خروجی</span>{% endif %}
+                    {% endif %}
                 </div>
             </td>
         </tr>
