@@ -11,7 +11,7 @@ cp .env.example .env
 Edit `.env`:
 
 ```env
-DJANGO_DEBUG=1
+DJANGO_DEBUG=0
 DJANGO_SECRET_KEY=replace-this-with-a-long-random-secret
 DJANGO_ALLOWED_HOSTS=salam-offer.titanapp.dev,your-domain.com,your-server-ip,127.0.0.1,localhost
 SQLITE_PATH=/app/data/db.sqlite3

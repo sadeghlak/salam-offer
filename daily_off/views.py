@@ -4,7 +4,8 @@ from datetime import date
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Count, Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -323,7 +324,11 @@ def dashboard_home(request):
 
 
 def run_detail(request, run_key):
-    run = get_object_or_404(DailyRun, run_key=run_key)
+    run = DailyRun.objects.filter(run_key=run_key).first()
+    if run is None:
+        messages.error(request, 'این اجرا در دیتابیس فعلی سایت پیدا نشد. اگر لینک از n8n یا محیط دیگری آمده، احتمالاً آن اجرا هنوز روی همین دیتابیس production ثبت نشده است.')
+        return redirect('daily_off:dashboard')
+
     base_snapshots = run.snapshots.select_related('product').order_by('id')
 
     category = request.GET.get('category') or ''

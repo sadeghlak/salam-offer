@@ -69,6 +69,11 @@
         .error-note { margin-top: 8px; color: #991b1b; background: #fee2e2; border-radius: 12px; padding: 8px 10px; font-size: 12px; line-height: 1.7; }
         .debug-note { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.8; }
         .inline-field { min-width: 230px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: white; color: var(--text); font-family: inherit; }
+        .messages { display: grid; gap: 10px; margin-bottom: 18px; }
+        .message { padding: 12px 16px; border-radius: 16px; background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; font-size: 13px; line-height: 1.8; }
+        .message.error { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        .message.success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+        .message.warning { background: #fef3c7; color: #92400e; border-color: #fde68a; }
         img.product { width: 72px; height: 72px; object-fit: cover; border-radius: 18px; background: #e2e8f0; box-shadow: 0 8px 20px rgba(15,23,42,.12); }
         .product-cell { display: flex; align-items: center; gap: 14px; min-width: 320px; }
         .product-title { font-weight: 800; color: #0f172a; line-height: 1.8; }
@@ -111,6 +116,13 @@
     </div>
 </header>
 <main>
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
     {% block content %}{% endblock %}
 </main>
 </body>

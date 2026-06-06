@@ -6,9 +6,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DJANGO_DEBUG: "${DJANGO_DEBUG:-1}"
+      DJANGO_DEBUG: "${DJANGO_DEBUG:-0}"
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-change-me-for-hosting}"
-      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,salam-offer.titanapp.dev}"
       SQLITE_PATH: "${SQLITE_PATH:-/app/data/db.sqlite3}"
     volumes:
       - salam_offer_data:/app/data
