@@ -1,45 +1,91 @@
 {% extends 'daily_off/base.html' %}
+{% load jalali %}
 {% block title %}جزئیات اجرای روزانه{% endblock %}
 {% block content %}
-<h1>اجرای {{ run.business_date }}</h1>
-<p class="muted">Run Key: {{ run.run_key }}</p>
-
-<div class="grid">
-    <div class="card">وضعیت<div class="metric">{{ run.status }}</div></div>
-    <div class="card">ورودی<div class="metric">{{ run.input_count }}</div></div>
-    <div class="card">جزئیات موفق<div class="metric">{{ run.fetched_count }}</div></div>
-    <div class="card">خطا<div class="metric">{{ run.error_count }}</div></div>
+<div class="page-head">
+    <div>
+        <h1>اجرای {{ run.business_date|jalali_date }}</h1>
+        <p class="muted">Run Key: {{ run.run_key }}</p>
+    </div>
+    <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' %}error{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
 </div>
 
+<div class="grid">
+    <div class="card"><span class="metric-label">ورودی</span><div class="metric">{{ run.input_count }}</div></div>
+    <div class="card"><span class="metric-label">جزئیات موفق</span><div class="metric">{{ run.fetched_count }}</div></div>
+    <div class="card"><span class="metric-label">خطا</span><div class="metric">{{ run.error_count }}</div></div>
+    <div class="card"><span class="metric-label">تعداد نمایش داده‌شده</span><div class="metric">{{ snapshots|length }}</div></div>
+</div>
+
+<form class="filter-bar" method="get">
+    <div class="field">
+        <label>فیلتر دسته‌بندی</label>
+        <select name="category">
+            <option value="">همه دسته‌ها</option>
+            {% for option in category_options %}
+                <option value="{{ option }}" {% if selected_category == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>وضعیت تحلیل</label>
+        <select name="analysis_status">
+            <option value="">همه وضعیت‌ها</option>
+            {% for option in status_options %}
+                <option value="{{ option }}" {% if selected_analysis_status == option %}selected{% endif %}>{{ option|status_label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button class="btn" type="submit">اعمال فیلتر</button>
+    <a class="btn secondary" href="{% url 'daily_off:run_detail' run.run_key %}">پاک کردن</a>
+</form>
+
 <h2>محصولات این اجرا</h2>
+<div class="table-card">
 <table>
     <thead>
     <tr>
-        <th>عکس</th>
-        <th>Product ID</th>
-        <th>عنوان</th>
-        <th>قیمت</th>
+        <th>محصول</th>
+        <th>قیمت آفر</th>
         <th>قیمت اصلی</th>
+        <th>دسته‌بندی</th>
         <th>فروشنده</th>
         <th>وضعیت تحلیل</th>
-        <th>تاریخچه</th>
+        <th>نتایج مشابه ارزان‌تر</th>
     </tr>
     </thead>
     <tbody>
     {% for item in snapshots %}
         <tr>
-            <td>{% if item.photo_url %}<img class="product" src="{{ item.photo_url }}" alt="">{% endif %}</td>
-            <td>{{ item.source_product_id }}</td>
-            <td>{{ item.title }}</td>
-            <td>{{ item.price }}</td>
-            <td>{{ item.primary_price }}</td>
-            <td>{{ item.vendor_name }}</td>
-            <td><span class="badge pending">{{ item.analysis_status }}</span></td>
-            <td><a href="{% url 'daily_off:product_detail' item.source_product_id %}">مشاهده</a></td>
+            <td>
+                <div class="product-cell">
+                    {% if item.photo_url %}<img class="product" src="{{ item.photo_url }}" alt="{{ item.title }}">{% endif %}
+                    <div>
+                        <a class="product-title" href="{% url 'daily_off:product_detail' item.source_product_id %}">{{ item.title }}</a>
+                        <div class="muted">ID: {{ item.source_product_id }}</div>
+                        {% if item.product.latest_product_url %}<a class="tiny-link" href="{{ item.product.latest_product_url }}" target="_blank">مشاهده در باسلام ↗</a>{% endif %}
+                    </div>
+                </div>
+            </td>
+            <td><span class="price-label">قیمت آفر</span><span class="offer-price">{{ item.price|toman }}</span></td>
+            <td><span class="price-label">قیمت قبل</span><span class="primary-price">{{ item.primary_price|toman }}</span></td>
+            <td>{{ item.category_title }}<div class="muted">{{ item.category_parent_title }}</div></td>
+            <td>{{ item.vendor_name }}<div class="muted">{{ item.vendor_city }}{% if item.vendor_province %}، {{ item.vendor_province }}{% endif %}</div></td>
+            <td><span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% else %}pending{% endif %}">{{ item.analysis_status|status_label }}</span></td>
+            <td>
+                <div class="result-links">
+                    {% if item.product_url1 %}<a class="result-link" href="{{ item.product_url1 }}" target="_blank">نتیجه ۱</a>{% endif %}
+                    {% if item.product_url2 %}<a class="result-link" href="{{ item.product_url2 }}" target="_blank">نتیجه ۲</a>{% endif %}
+                    {% if item.product_url3 %}<a class="result-link" href="{{ item.product_url3 }}" target="_blank">نتیجه ۳</a>{% endif %}
+                    {% if not item.product_url1 and not item.product_url2 and not item.product_url3 %}<span class="badge gray">در انتظار تحلیل</span>{% endif %}
+                    {% if item.accepted_candidates_count %}<span class="muted">{{ item.accepted_candidates_count }} نتیجه پذیرفته‌شده</span>{% endif %}
+                </div>
+            </td>
         </tr>
     {% empty %}
-        <tr><td colspan="8">هنوز محصولی برای این اجرا ثبت نشده است.</td></tr>
+        <tr><td colspan="7">محصولی با این فیلترها پیدا نشد.</td></tr>
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

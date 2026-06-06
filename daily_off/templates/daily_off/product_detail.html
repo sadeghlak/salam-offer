@@ -1,43 +1,70 @@
 {% extends 'daily_off/base.html' %}
-{% block title %}تاریخچه محصول{% endblock %}
+{% load jalali %}
+{% block title %}جزئیات محصول{% endblock %}
 {% block content %}
-<h1>{{ product.latest_title|default:product.basalam_product_id }}</h1>
-<p class="muted">Product ID: {{ product.basalam_product_id }}</p>
-{% if product.latest_product_url %}<p><a href="{{ product.latest_product_url }}" target="_blank">مشاهده در باسلام</a></p>{% endif %}
-
-<div class="grid">
-    <div class="card">آخرین قیمت<div class="metric">{{ product.latest_price }}</div></div>
-    <div class="card">آخرین قیمت اصلی<div class="metric">{{ product.latest_primary_price }}</div></div>
-    <div class="card">فروشنده<div class="metric" style="font-size: 18px;">{{ product.latest_vendor_identifier }}</div></div>
+{% if latest_snapshot %}
+<div class="card hero">
+    {% if latest_snapshot.photo_url %}<img src="{{ latest_snapshot.photo_url }}" alt="{{ latest_snapshot.title }}">{% endif %}
+    <div>
+        <div class="hero-title">{{ latest_snapshot.title }}</div>
+        <div class="meta-row">
+            <span class="badge">ID: {{ product.basalam_product_id }}</span>
+            <span class="badge gray">{{ latest_snapshot.category_title }}</span>
+            <span class="badge pending">{{ latest_snapshot.analysis_status|status_label }}</span>
+        </div>
+        <div class="grid" style="margin-top: 18px; margin-bottom: 0;">
+            <div class="card" style="box-shadow:none;"><span class="metric-label">قیمت آفر</span><div class="offer-price">{{ latest_snapshot.price|toman }}</div></div>
+            <div class="card" style="box-shadow:none;"><span class="metric-label">قیمت اصلی</span><div class="primary-price">{{ latest_snapshot.primary_price|toman }}</div></div>
+            <div class="card" style="box-shadow:none;"><span class="metric-label">فروشنده</span><div><strong>{{ latest_snapshot.vendor_name }}</strong><div class="muted">{{ latest_snapshot.vendor_city }}</div></div></div>
+        </div>
+        <div class="meta-row">
+            {% if product.latest_product_url %}<a class="btn" href="{{ product.latest_product_url }}" target="_blank">مشاهده محصول در باسلام</a>{% endif %}
+            {% if latest_snapshot.product_url1 %}<a class="result-link" href="{{ latest_snapshot.product_url1 }}" target="_blank">نتیجه مشابه ۱</a>{% endif %}
+            {% if latest_snapshot.product_url2 %}<a class="result-link" href="{{ latest_snapshot.product_url2 }}" target="_blank">نتیجه مشابه ۲</a>{% endif %}
+            {% if latest_snapshot.product_url3 %}<a class="result-link" href="{{ latest_snapshot.product_url3 }}" target="_blank">نتیجه مشابه ۳</a>{% endif %}
+        </div>
+    </div>
 </div>
+{% else %}
+<h1>{{ product.latest_title|default:product.basalam_product_id }}</h1>
+{% endif %}
 
 <h2>تاریخچه روزانه</h2>
+<div class="table-card">
 <table>
     <thead>
     <tr>
         <th>تاریخ</th>
-        <th>عنوان</th>
-        <th>قیمت</th>
+        <th>قیمت آفر</th>
         <th>قیمت اصلی</th>
         <th>واحد/وزن</th>
         <th>دسته</th>
         <th>وضعیت تحلیل</th>
+        <th>نتایج</th>
     </tr>
     </thead>
     <tbody>
     {% for item in snapshots %}
         <tr>
-            <td>{{ item.business_date }}</td>
-            <td>{{ item.title }}</td>
-            <td>{{ item.price }}</td>
-            <td>{{ item.primary_price }}</td>
+            <td>{{ item.business_date|jalali_date }}</td>
+            <td><span class="offer-price">{{ item.price|toman }}</span></td>
+            <td><span class="primary-price">{{ item.primary_price|toman }}</span></td>
             <td>{{ item.weight_text }}</td>
             <td>{{ item.category_title }}</td>
-            <td><span class="badge pending">{{ item.analysis_status }}</span></td>
+            <td><span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% else %}pending{% endif %}">{{ item.analysis_status|status_label }}</span></td>
+            <td>
+                <div class="result-links">
+                    {% if item.product_url1 %}<a class="result-link" href="{{ item.product_url1 }}" target="_blank">۱</a>{% endif %}
+                    {% if item.product_url2 %}<a class="result-link" href="{{ item.product_url2 }}" target="_blank">۲</a>{% endif %}
+                    {% if item.product_url3 %}<a class="result-link" href="{{ item.product_url3 }}" target="_blank">۳</a>{% endif %}
+                    {% if not item.product_url1 and not item.product_url2 and not item.product_url3 %}<span class="muted">-</span>{% endif %}
+                </div>
+            </td>
         </tr>
     {% empty %}
         <tr><td colspan="7">تاریخچه‌ای ثبت نشده است.</td></tr>
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

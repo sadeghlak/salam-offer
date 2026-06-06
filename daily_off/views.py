@@ -158,11 +158,46 @@ def dashboard_home(request):
 
 def run_detail(request, run_key):
     run = get_object_or_404(DailyRun, run_key=run_key)
-    snapshots = run.snapshots.select_related('product').order_by('id')
-    return render(request, 'daily_off/run_detail.html', {'run': run, 'snapshots': snapshots})
+    base_snapshots = run.snapshots.select_related('product').order_by('id')
+
+    category = request.GET.get('category') or ''
+    analysis_status = request.GET.get('analysis_status') or ''
+
+    category_options = list(
+        base_snapshots.exclude(category_title='')
+        .order_by('category_title')
+        .values_list('category_title', flat=True)
+        .distinct()
+    )
+    status_options = list(
+        base_snapshots.exclude(analysis_status='')
+        .order_by('analysis_status')
+        .values_list('analysis_status', flat=True)
+        .distinct()
+    )
+
+    snapshots = base_snapshots
+    if category:
+        snapshots = snapshots.filter(category_title=category)
+    if analysis_status:
+        snapshots = snapshots.filter(analysis_status=analysis_status)
+
+    return render(request, 'daily_off/run_detail.html', {
+        'run': run,
+        'snapshots': snapshots,
+        'category_options': category_options,
+        'status_options': status_options,
+        'selected_category': category,
+        'selected_analysis_status': analysis_status,
+    })
 
 
 def product_detail(request, product_id):
     product = get_object_or_404(Product, basalam_product_id=product_id)
     snapshots = product.daily_snapshots.select_related('run').order_by('-business_date', '-captured_at')
-    return render(request, 'daily_off/product_detail.html', {'product': product, 'snapshots': snapshots})
+    latest_snapshot = snapshots.first()
+    return render(request, 'daily_off/product_detail.html', {
+        'product': product,
+        'snapshots': snapshots,
+        'latest_snapshot': latest_snapshot,
+    })

@@ -105,6 +105,10 @@ class DailyProductSnapshot(models.Model):
     raw_json = models.JSONField(default=dict, blank=True)
     details_status = models.CharField(max_length=64, default='DETAILS_FETCHED', db_index=True)
     status_row = models.CharField(max_length=64, default='analysis_pending', db_index=True)
+    product_url1 = models.URLField(max_length=700, blank=True)
+    product_url2 = models.URLField(max_length=700, blank=True)
+    product_url3 = models.URLField(max_length=700, blank=True)
+    accepted_candidates_count = models.PositiveIntegerField(default=0)
 
     fetch_status = models.CharField(max_length=32, choices=FetchStatus.choices, default=FetchStatus.DETAILS_FETCHED, db_index=True)
     analysis_status = models.CharField(max_length=32, choices=AnalysisStatus.choices, default=AnalysisStatus.PENDING, db_index=True)
