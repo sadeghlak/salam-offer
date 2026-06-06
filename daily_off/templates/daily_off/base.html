@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}سلام آفر{% endblock %}</title>
+    <style>
+        body { margin: 0; font-family: Tahoma, Arial, sans-serif; background: #f7f7f8; color: #1f2937; }
+        header { background: #0f766e; color: white; padding: 16px 28px; }
+        header a { color: white; text-decoration: none; }
+        main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 1px 5px rgba(15, 23, 42, .08); }
+        .metric { font-size: 28px; font-weight: bold; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 5px rgba(15, 23, 42, .08); }
+        th, td { padding: 12px 14px; border-bottom: 1px solid #e5e7eb; text-align: right; vertical-align: top; }
+        th { background: #f1f5f9; font-size: 13px; }
+        a { color: #0f766e; text-decoration: none; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #e0f2fe; font-size: 12px; }
+        .pending { background: #fef3c7; }
+        .error { background: #fee2e2; }
+        .ok { background: #dcfce7; }
+        .muted { color: #64748b; font-size: 12px; }
+        img.product { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: #eee; }
+    </style>
+</head>
+<body>
+<header>
+    <a href="{% url 'daily_off:dashboard' %}"><strong>سلام آفر</strong></a>
+    <span class="muted" style="color: #d1fae5; margin-right: 12px;">MVP Daily-off Dashboard</span>
+</header>
+<main>
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

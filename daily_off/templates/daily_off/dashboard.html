@@ -1,0 +1,43 @@
+{% extends 'daily_off/base.html' %}
+{% block title %}داشبورد سلام آفر{% endblock %}
+{% block content %}
+<h1>داشبورد سلام آفر</h1>
+<p class="muted">این صفحه وضعیت ورود روزانه محصولات دیلی‌آف و صف تحلیل را نشان می‌دهد.</p>
+
+<div class="grid">
+    <div class="card">کل اجراها<div class="metric">{{ totals.runs }}</div></div>
+    <div class="card">محصولات یکتا<div class="metric">{{ totals.products }}</div></div>
+    <div class="card">اسنپ‌شات‌ها<div class="metric">{{ totals.snapshots }}</div></div>
+    <div class="card">در انتظار تحلیل<div class="metric">{{ totals.pending_analysis }}</div></div>
+</div>
+
+<h2>اجراهای اخیر</h2>
+<table>
+    <thead>
+    <tr>
+        <th>تاریخ</th>
+        <th>Run Key</th>
+        <th>وضعیت</th>
+        <th>ورودی</th>
+        <th>جزئیات موفق</th>
+        <th>خطا</th>
+        <th>جزئیات</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for run in runs %}
+        <tr>
+            <td>{{ run.business_date }}</td>
+            <td class="muted">{{ run.run_key }}</td>
+            <td><span class="badge">{{ run.status }}</span></td>
+            <td>{{ run.input_count }}</td>
+            <td>{{ run.fetched_count }}</td>
+            <td>{{ run.error_count }}</td>
+            <td><a href="{% url 'daily_off:run_detail' run.run_key %}">مشاهده</a></td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="7">هنوز اجرایی ثبت نشده است.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

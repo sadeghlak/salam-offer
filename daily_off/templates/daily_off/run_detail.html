@@ -1,0 +1,45 @@
+{% extends 'daily_off/base.html' %}
+{% block title %}جزئیات اجرای روزانه{% endblock %}
+{% block content %}
+<h1>اجرای {{ run.business_date }}</h1>
+<p class="muted">Run Key: {{ run.run_key }}</p>
+
+<div class="grid">
+    <div class="card">وضعیت<div class="metric">{{ run.status }}</div></div>
+    <div class="card">ورودی<div class="metric">{{ run.input_count }}</div></div>
+    <div class="card">جزئیات موفق<div class="metric">{{ run.fetched_count }}</div></div>
+    <div class="card">خطا<div class="metric">{{ run.error_count }}</div></div>
+</div>
+
+<h2>محصولات این اجرا</h2>
+<table>
+    <thead>
+    <tr>
+        <th>عکس</th>
+        <th>Product ID</th>
+        <th>عنوان</th>
+        <th>قیمت</th>
+        <th>قیمت اصلی</th>
+        <th>فروشنده</th>
+        <th>وضعیت تحلیل</th>
+        <th>تاریخچه</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in snapshots %}
+        <tr>
+            <td>{% if item.photo_url %}<img class="product" src="{{ item.photo_url }}" alt="">{% endif %}</td>
+            <td>{{ item.source_product_id }}</td>
+            <td>{{ item.title }}</td>
+            <td>{{ item.price }}</td>
+            <td>{{ item.primary_price }}</td>
+            <td>{{ item.vendor_name }}</td>
+            <td><span class="badge pending">{{ item.analysis_status }}</span></td>
+            <td><a href="{% url 'daily_off:product_detail' item.source_product_id %}">مشاهده</a></td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="8">هنوز محصولی برای این اجرا ثبت نشده است.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
