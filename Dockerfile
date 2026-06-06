@@ -2,7 +2,10 @@ FROM docker.basalam.dev/library/python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    DJANGO_DEBUG=0 \
+    SQLITE_PATH=/app/data/db.sqlite3 \
+    PORT=8000
 
 WORKDIR /app
 
@@ -21,4 +24,4 @@ RUN chmod +x /app/entrypoint.sh
 EXPOSE 8000
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["sh", "-c", "python manage.py runserver 0.0.0.0:${PORT:-8000}"]
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --timeout ${WEB_TIMEOUT:-120} --access-logfile - --error-logfile -"]

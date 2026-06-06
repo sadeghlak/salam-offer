@@ -15,6 +15,9 @@ DJANGO_DEBUG=0
 DJANGO_SECRET_KEY=replace-this-with-a-long-random-secret
 DJANGO_ALLOWED_HOSTS=salam-offer.titanapp.dev,your-domain.com,your-server-ip,127.0.0.1,localhost
 SQLITE_PATH=/app/data/db.sqlite3
+PORT=8000
+WEB_CONCURRENCY=2
+WEB_TIMEOUT=120
 ```
 
 ## Run with Docker Compose
@@ -53,4 +56,5 @@ docker compose down
 
 - SQLite is persisted in the `salam_offer_data` Docker volume.
 - Static files are collected on container startup.
+- The container serves Django with Gunicorn and binds to `${PORT:-8000}`.
 - For production, set `DJANGO_DEBUG=0`, a strong `DJANGO_SECRET_KEY`, and exact `DJANGO_ALLOWED_HOSTS` values.

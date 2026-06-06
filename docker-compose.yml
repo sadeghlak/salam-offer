@@ -10,6 +10,9 @@ services:
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-change-me-for-hosting}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,salam-offer.titanapp.dev}"
       SQLITE_PATH: "${SQLITE_PATH:-/app/data/db.sqlite3}"
+      PORT: "${PORT:-8000}"
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
+      WEB_TIMEOUT: "${WEB_TIMEOUT:-120}"
     volumes:
       - salam_offer_data:/app/data
       - salam_offer_static:/app/staticfiles
