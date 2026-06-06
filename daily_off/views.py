@@ -11,6 +11,50 @@ from .models import DailyProductSnapshot, DailyRun, Product
 from .services import create_or_update_run, mark_product_fetch_error, store_product_snapshot
 
 
+def snapshot_to_workflow_payload(item):
+    return {
+        'snapshot_id': item.id,
+        'run_key': str(item.run.run_key),
+        'business_date': item.business_date.isoformat(),
+        'product_id': item.source_product_id,
+        'product_title_full': item.title,
+        'product_price': item.price,
+        'product_primary_price': item.primary_price,
+        'product_description': item.description,
+        'product_summary': item.summary,
+        'product_photo': item.photo_url,
+        'product_status': item.product_status,
+        'product_inventory': item.inventory,
+        'product_is_available': item.is_available,
+        'product_is_saleable': item.is_saleable,
+        'product_is_showable': item.is_showable,
+        'product_is_wholesale': item.is_wholesale,
+        'product_review_count': item.review_count,
+        'product_rating': item.rating,
+        'product_preparation_day': item.preparation_day,
+        'product_net_weight': item.net_weight,
+        'product_packaged_weight': item.packaged_weight,
+        'product_unit_quantity': item.unit_quantity,
+        'product_unit_type': item.unit_type,
+        'product_weight_text': item.weight_text,
+        'product_category_title': item.category_title,
+        'product_category_parent_title': item.category_parent_title,
+        'product_navigation_title': item.navigation_title,
+        'product_navigation_slug': item.navigation_slug,
+        'vendor_name': item.vendor_name,
+        'vendor_identifier': item.vendor_identifier,
+        'vendor_city': item.vendor_city,
+        'vendor_province': item.vendor_province,
+        'vendor_summary': item.vendor_summary,
+        'vendor_status': item.vendor_status,
+        'product_attributes_text': item.attributes_text,
+        'product_category_list_text': item.category_list_text,
+        'product_raw_json': item.raw_json,
+        'details_status': item.details_status,
+        'status_row': item.status_row,
+    }
+
+
 def parse_body(request):
     try:
         return json.loads(request.body.decode('utf-8') or '{}')
@@ -97,19 +141,7 @@ def api_pending_analysis(request):
 
     return JsonResponse({
         'ok': True,
-        'items': [
-            {
-                'snapshot_id': item.id,
-                'run_key': str(item.run.run_key),
-                'business_date': item.business_date.isoformat(),
-                'product_id': item.source_product_id,
-                'title': item.title,
-                'price': item.price,
-                'photo_url': item.photo_url,
-                'raw_json': item.raw_json,
-            }
-            for item in items
-        ],
+        'items': [snapshot_to_workflow_payload(item) for item in items],
     })
 
 

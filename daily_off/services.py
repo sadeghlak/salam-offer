@@ -110,10 +110,13 @@ def normalize_product(raw_product):
         'vendor_identifier': vendor_identifier,
         'vendor_city': nested_get(raw_product, 'vendor.city.name') or raw_product.get('vendor_city', ''),
         'vendor_province': nested_get(raw_product, 'vendor.city.province.name') or raw_product.get('vendor_province', ''),
+        'vendor_summary': nested_get(raw_product, 'vendor.summary') or raw_product.get('vendor_summary', ''),
         'vendor_status': nested_get(raw_product, 'vendor.status.name') or raw_product.get('vendor_status', ''),
         'attributes_text': raw_product.get('product_attributes_text') or attributes_text(raw_product),
         'category_list_text': raw_product.get('product_category_list_text') or category_list_text(raw_product),
         'raw_json': raw_product,
+        'details_status': raw_product.get('details_status') or 'DETAILS_FETCHED',
+        'status_row': raw_product.get('status_row') or 'analysis_pending',
     }
 
 
@@ -162,6 +165,8 @@ def store_product_snapshot(*, run, raw_product, business_date=None):
         'captured_at': timezone.now(),
         'fetch_status': DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
         'analysis_status': DailyProductSnapshot.AnalysisStatus.PENDING,
+        'details_status': normalized.get('details_status') or 'DETAILS_FETCHED',
+        'status_row': normalized.get('status_row') or DailyProductSnapshot.AnalysisStatus.PENDING,
         'error_message': '',
     }
     snapshot_defaults.update(normalized)
@@ -190,6 +195,8 @@ def mark_product_fetch_error(*, run, product_id, error_message, business_date=No
             'business_date': business_date,
             'fetch_status': DailyProductSnapshot.FetchStatus.FETCH_ERROR,
             'analysis_status': DailyProductSnapshot.AnalysisStatus.ERROR,
+            'details_status': 'DETAILS_ERROR',
+            'status_row': DailyProductSnapshot.AnalysisStatus.ERROR,
             'error_message': error_message,
         },
     )

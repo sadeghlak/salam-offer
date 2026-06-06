@@ -98,10 +98,13 @@ class DailyProductSnapshot(models.Model):
     vendor_identifier = models.CharField(max_length=160, blank=True)
     vendor_city = models.CharField(max_length=255, blank=True)
     vendor_province = models.CharField(max_length=255, blank=True)
+    vendor_summary = models.TextField(blank=True)
     vendor_status = models.CharField(max_length=128, blank=True)
     attributes_text = models.TextField(blank=True)
     category_list_text = models.TextField(blank=True)
     raw_json = models.JSONField(default=dict, blank=True)
+    details_status = models.CharField(max_length=64, default='DETAILS_FETCHED', db_index=True)
+    status_row = models.CharField(max_length=64, default='analysis_pending', db_index=True)
 
     fetch_status = models.CharField(max_length=32, choices=FetchStatus.choices, default=FetchStatus.DETAILS_FETCHED, db_index=True)
     analysis_status = models.CharField(max_length=32, choices=AnalysisStatus.choices, default=AnalysisStatus.PENDING, db_index=True)
