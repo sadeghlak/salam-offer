@@ -17,6 +17,11 @@
         <div class="mini-metric"><span>کل محصولات اجرا</span><strong>{{ run_summary.total }}</strong></div>
         <div class="mini-metric"><span>تحلیل شده</span><strong>{{ run_summary.analyzed }}</strong></div>
         <div class="mini-metric"><span>در انتظار / در حال تحلیل</span><strong>{{ run_summary.pending }} / {{ run_summary.running }}</strong></div>
+        <div class="analysis-control">
+            <button class="btn" type="button" data-analyze-all data-run-key="{{ run.run_key }}">تحلیل همه محصولات باقی‌مانده</button>
+            <button class="btn secondary" type="button" data-stop-analysis disabled>توقف</button>
+        </div>
+        <div class="analysis-progress" data-analysis-progress>آماده تحلیل محصولات در صف.</div>
         <form method="post" action="{% url 'daily_off:delete_run' run.run_key %}" onsubmit="return confirm('کل داده‌های این روز حذف شود؟');">
             {% csrf_token %}
             <button class="btn danger" type="submit">حذف این روز</button>
@@ -142,9 +147,10 @@
             <div class="listing-actions">
                 <div class="status-stack">
                     <span class="badge {% if item.fetch_status == 'details_fetched' %}ok{% else %}error{% endif %}">{{ item.fetch_status|status_label }}</span>
-                    <span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% elif item.analysis_status == 'analysis_running' %}info{% elif item.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}">{{ item.analysis_status|status_label }}</span>
+                    <span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% elif item.analysis_status == 'analysis_running' %}info{% elif item.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}" data-status-badge="{{ item.id }}">{{ item.analysis_status|status_label }}</span>
                     <span class="badge gray">{{ item.status_row|status_label }}</span>
                 </div>
+                <button class="btn secondary" type="button" data-analyze-snapshot data-snapshot-id="{{ item.id }}">تحلیل این محصول</button>
                 <div class="result-links">
                     {% if item.product_url1 %}<a class="result-link" href="{{ item.product_url1 }}" target="_blank">نتیجه ۱</a>{% endif %}
                     {% if item.product_url2 %}<a class="result-link" href="{{ item.product_url2 }}" target="_blank">نتیجه ۲</a>{% endif %}
@@ -159,4 +165,100 @@
         <div class="empty-card">محصولی با این فیلترها پیدا نشد.</div>
     {% endfor %}
 </div>
+
+<script>
+(function () {
+  const progress = document.querySelector('[data-analysis-progress]');
+  const analyzeAllButton = document.querySelector('[data-analyze-all]');
+  const stopButton = document.querySelector('[data-stop-analysis]');
+  let shouldContinue = false;
+
+  function setProgress(message) {
+    if (progress) progress.innerHTML = message;
+  }
+
+  async function postJson(url, payload) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload || {}),
+    });
+    return response.json();
+  }
+
+  async function analyzeSnapshot(button) {
+    const snapshotId = button.dataset.snapshotId;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'در حال تحلیل...';
+    setProgress('تحلیل یک محصول شروع شد...');
+    try {
+      const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30});
+      if (data.ok) {
+        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${data.analysis_status}</strong>`);
+        const badge = document.querySelector(`[data-status-badge="${snapshotId}"]`);
+        if (badge) badge.textContent = data.analysis_status;
+      } else {
+        setProgress(`تحلیل محصول دوباره به صف برگشت: ${data.error || 'خطای نامشخص'}`);
+      }
+    } catch (error) {
+      setProgress(`خطای ارتباط با سایت: ${error}`);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
+  async function analyzeNextLoop() {
+    if (!shouldContinue) return;
+    try {
+      const runKey = analyzeAllButton.dataset.runKey;
+      const data = await postJson('/api/analysis/process-next/', {run_key: runKey, limit: 1, older_than_minutes: 30, actor: 'ui_run_detail'});
+      if (!data.ok) {
+        setProgress(`خطا در تحلیل مرحله‌ای: ${data.error || 'خطای نامشخص'}`);
+        shouldContinue = false;
+      } else {
+        const item = (data.items || [])[0];
+        const status = item ? item.analysis_status : 'بدون آیتم';
+        const pending = data.pending_count ?? 0;
+        setProgress(`پردازش‌شده: <strong>${data.processed_count}</strong> · وضعیت آخر: <strong>${status}</strong> · باقی‌مانده در صف: <strong>${pending}</strong>`);
+        if (data.has_more && shouldContinue) {
+          setTimeout(analyzeNextLoop, 400);
+          return;
+        }
+      }
+    } catch (error) {
+      setProgress(`خطای ارتباط با سایت: ${error}`);
+      shouldContinue = false;
+    }
+    analyzeAllButton.disabled = false;
+    stopButton.disabled = true;
+    shouldContinue = false;
+    if (confirm('تحلیل مرحله‌ای تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
+  }
+
+  document.querySelectorAll('[data-analyze-snapshot]').forEach((button) => {
+    button.addEventListener('click', () => analyzeSnapshot(button));
+  });
+
+  if (analyzeAllButton) {
+    analyzeAllButton.addEventListener('click', () => {
+      shouldContinue = true;
+      analyzeAllButton.disabled = true;
+      stopButton.disabled = false;
+      setProgress('تحلیل همه محصولات باقی‌مانده شروع شد...');
+      analyzeNextLoop();
+    });
+  }
+
+  if (stopButton) {
+    stopButton.addEventListener('click', () => {
+      shouldContinue = false;
+      stopButton.disabled = true;
+      analyzeAllButton.disabled = false;
+      setProgress('فرایند بعد از درخواست فعلی متوقف می‌شود.');
+    });
+  }
+})();
+</script>
 {% endblock %}

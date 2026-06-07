@@ -55,6 +55,47 @@ class Product(models.Model):
         return f'{self.basalam_product_id} - {self.latest_title}'
 
 
+class AnalysisStatusLog(models.Model):
+    class EventType(models.TextChoices):
+        QUEUED = 'queued', 'Queued'
+        CLAIMED = 'claimed', 'Claimed'
+        STARTED = 'started', 'Started'
+        SEARCH_STARTED = 'search_started', 'Search started'
+        TEXT_SEARCH_COMPLETED = 'text_search_completed', 'Text search completed'
+        IMAGE_SEARCH_COMPLETED = 'image_search_completed', 'Image search completed'
+        IMAGE_SEARCH_SKIPPED = 'image_search_skipped', 'Image search skipped'
+        CANDIDATES_DEDUPED = 'candidates_deduped', 'Candidates deduped'
+        CANDIDATES_SCORED = 'candidates_scored', 'Candidates scored'
+        RESULT_STORED = 'result_stored', 'Result stored'
+        ERROR = 'error', 'Error'
+        REQUEUED = 'requeued', 'Requeued'
+        FINISHED = 'finished', 'Finished'
+
+    snapshot = models.ForeignKey('DailyProductSnapshot', on_delete=models.CASCADE, related_name='analysis_logs')
+    run = models.ForeignKey(DailyRun, on_delete=models.CASCADE, related_name='analysis_logs')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='analysis_logs')
+    from_status = models.CharField(max_length=32, blank=True, db_index=True)
+    to_status = models.CharField(max_length=32, blank=True, db_index=True)
+    status_row = models.CharField(max_length=64, blank=True, db_index=True)
+    event_type = models.CharField(max_length=64, choices=EventType.choices, db_index=True)
+    message = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    request_id = models.CharField(max_length=64, blank=True, db_index=True)
+    actor = models.CharField(max_length=64, default='django', db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        indexes = [
+            models.Index(fields=['snapshot', '-created_at'], name='asl_snapshot_created_idx'),
+            models.Index(fields=['run', '-created_at'], name='asl_run_created_idx'),
+            models.Index(fields=['event_type', '-created_at'], name='asl_event_created_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.snapshot_id} / {self.event_type} / {self.to_status}'
+
+
 class DailyProductSnapshot(models.Model):
     class FetchStatus(models.TextChoices):
         DETAILS_FETCHED = 'details_fetched', 'Details fetched'

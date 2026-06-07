@@ -18,5 +18,10 @@ urlpatterns = [
     path('api/analysis/requeue-stale/', views.api_requeue_stale_analysis, name='api_requeue_stale_analysis'),
     path('api/analysis/result/', views.api_analysis_result, name='api_analysis_result'),
     path('api/analysis/error/', views.api_analysis_error, name='api_analysis_error'),
+    path('api/analysis/process-next/', views.api_process_next_analysis, name='api_process_next_analysis'),
+    path('api/analysis/process-batch/', views.api_process_analysis_batch, name='api_process_analysis_batch'),
+    path('api/analysis/snapshots/<int:snapshot_id>/run/', views.api_run_snapshot_analysis, name='api_run_snapshot_analysis'),
+    path('api/analysis/snapshots/<int:snapshot_id>/logs/', views.api_snapshot_analysis_logs, name='api_snapshot_analysis_logs'),
+    path('api/runs/<uuid:run_key>/analysis-status/', views.api_run_analysis_status, name='api_run_analysis_status'),
     path('api/runs/finish/', views.api_finish_run, name='api_finish_run'),
 ]

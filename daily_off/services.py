@@ -1,10 +1,12 @@
 from datetime import date
 
-from django.db import transaction
+from uuid import uuid4
+
+from django.db import connection, transaction
 from django.db.models import Count
 from django.utils import timezone
 
-from .models import DailyProductSnapshot, DailyRun, Product
+from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 
 
 COUNT_UNITS = {'عددی', 'عدد', 'بسته', 'جفت'}
@@ -13,6 +15,22 @@ TERMINAL_ANALYSIS_STATUSES = {
     DailyProductSnapshot.AnalysisStatus.NO_MATCH,
     DailyProductSnapshot.AnalysisStatus.ERROR,
 }
+
+
+class AnalysisClaimError(Exception):
+    pass
+
+
+class AnalysisAlreadyRunning(AnalysisClaimError):
+    pass
+
+
+class AnalysisAlreadyFinished(AnalysisClaimError):
+    pass
+
+
+def make_request_id():
+    return uuid4().hex[:16]
 
 
 def nested_get(data, path, default=''):
@@ -359,8 +377,115 @@ def refresh_run_status(run, *, explicit_status=None, notes=None, finish=False):
     return run
 
 
+def log_analysis_status(*, snapshot, event_type, from_status='', to_status='', status_row='', message='', metadata=None, request_id='', actor='django'):
+    return AnalysisStatusLog.objects.create(
+        snapshot=snapshot,
+        run=snapshot.run,
+        product=snapshot.product,
+        from_status=from_status or '',
+        to_status=to_status or '',
+        status_row=status_row or snapshot.status_row or '',
+        event_type=event_type,
+        message=clean_string(message),
+        metadata=metadata or {},
+        request_id=request_id or '',
+        actor=actor or 'django',
+    )
+
+
 @transaction.atomic
-def claim_pending_analysis(*, limit=100, run_key=None, business_date=None):
+def set_analysis_status(*, snapshot, to_status, status_row=None, event_type=AnalysisStatusLog.EventType.STARTED, message='', metadata=None, request_id='', actor='django'):
+    from_status = snapshot.analysis_status
+    snapshot.analysis_status = to_status
+    snapshot.status_row = status_row or to_status
+    snapshot.save(update_fields=['analysis_status', 'status_row', 'updated_at'])
+    log_analysis_status(
+        snapshot=snapshot,
+        event_type=event_type,
+        from_status=from_status,
+        to_status=to_status,
+        status_row=snapshot.status_row,
+        message=message,
+        metadata=metadata,
+        request_id=request_id,
+        actor=actor,
+    )
+    refresh_run_status(snapshot.run)
+    return snapshot
+
+
+@transaction.atomic
+def claim_snapshot_for_analysis(*, snapshot_id, force=False, stale_minutes=30, request_id='', actor='django_api'):
+    snapshot = DailyProductSnapshot.objects.select_for_update().select_related('run', 'product').get(id=snapshot_id)
+    now = timezone.now()
+    stale_cutoff = now - timezone.timedelta(minutes=max(1, as_int(stale_minutes, 30)))
+
+    if snapshot.analysis_status == DailyProductSnapshot.AnalysisStatus.RUNNING:
+        if force or snapshot.updated_at < stale_cutoff:
+            from_status = snapshot.analysis_status
+            snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
+            snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
+            snapshot.save(update_fields=['analysis_status', 'status_row', 'updated_at'])
+            log_analysis_status(
+                snapshot=snapshot,
+                event_type=AnalysisStatusLog.EventType.REQUEUED,
+                from_status=from_status,
+                to_status=snapshot.analysis_status,
+                status_row=snapshot.status_row,
+                message='تحلیل در حال اجرا قدیمی بود و دوباره به صف برگشت.',
+                metadata={'stale_minutes': stale_minutes, 'forced': force},
+                request_id=request_id,
+                actor=actor,
+            )
+        else:
+            raise AnalysisAlreadyRunning('snapshot is already running')
+
+    if snapshot.analysis_status in TERMINAL_ANALYSIS_STATUSES and not force:
+        raise AnalysisAlreadyFinished('snapshot analysis is already finished')
+
+    from_status = snapshot.analysis_status
+    snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.RUNNING
+    snapshot.status_row = DailyProductSnapshot.AnalysisStatus.RUNNING
+    snapshot.error_message = ''
+    snapshot.save(update_fields=['analysis_status', 'status_row', 'error_message', 'updated_at'])
+    log_analysis_status(
+        snapshot=snapshot,
+        event_type=AnalysisStatusLog.EventType.CLAIMED,
+        from_status=from_status,
+        to_status=snapshot.analysis_status,
+        status_row=snapshot.status_row,
+        message='محصول برای تحلیل سایت claim شد.',
+        request_id=request_id,
+        actor=actor,
+    )
+    return snapshot
+
+
+@transaction.atomic
+def mark_analysis_failed_for_retry(*, snapshot_id=None, run_key=None, product_id=None, error_message='', request_id='', actor='django_analysis'):
+    snapshot = find_snapshot(snapshot_id=snapshot_id, run_key=run_key, product_id=product_id)
+    from_status = snapshot.analysis_status
+    snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
+    snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
+    snapshot.error_message = clean_string(error_message)[:1000]
+    snapshot.save(update_fields=['analysis_status', 'status_row', 'error_message', 'updated_at'])
+    log_analysis_status(
+        snapshot=snapshot,
+        event_type=AnalysisStatusLog.EventType.ERROR,
+        from_status=from_status,
+        to_status=snapshot.analysis_status,
+        status_row=snapshot.status_row,
+        message=snapshot.error_message or 'analysis failed and returned to pending',
+        metadata={'retryable': True},
+        request_id=request_id,
+        actor=actor,
+    )
+    refresh_run_status(snapshot.run)
+    return snapshot
+
+
+@transaction.atomic
+def claim_pending_analysis(*, limit=100, run_key=None, business_date=None, request_id='', actor='django_api'):
     limit = max(1, min(as_int(limit, 100), 100))
     queryset = DailyProductSnapshot.objects.filter(
         fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
@@ -372,29 +497,35 @@ def claim_pending_analysis(*, limit=100, run_key=None, business_date=None):
         business_date = business_date or timezone.localdate()
         queryset = queryset.filter(business_date=business_date)
 
-    snapshot_ids = list(queryset.order_by('id').values_list('id', flat=True)[:limit])
-    if not snapshot_ids:
+    if connection.features.has_select_for_update_skip_locked:
+        queryset = queryset.select_for_update(skip_locked=True)
+
+    snapshots = list(queryset.select_related('run', 'product').order_by('id')[:limit])
+    if not snapshots:
         return []
 
-    DailyProductSnapshot.objects.filter(
-        id__in=snapshot_ids,
-        analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
-    ).update(
-        analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
-        status_row=DailyProductSnapshot.AnalysisStatus.RUNNING,
-        updated_at=timezone.now(),
-    )
+    for snapshot in snapshots:
+        from_status = snapshot.analysis_status
+        snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.RUNNING
+        snapshot.status_row = DailyProductSnapshot.AnalysisStatus.RUNNING
+        snapshot.error_message = ''
+        snapshot.save(update_fields=['analysis_status', 'status_row', 'error_message', 'updated_at'])
+        log_analysis_status(
+            snapshot=snapshot,
+            event_type=AnalysisStatusLog.EventType.CLAIMED,
+            from_status=from_status,
+            to_status=snapshot.analysis_status,
+            status_row=snapshot.status_row,
+            message='محصول وارد دسته تحلیل شد.',
+            request_id=request_id,
+            actor=actor,
+        )
 
-    return list(
-        DailyProductSnapshot.objects.filter(
-            id__in=snapshot_ids,
-            analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
-        ).select_related('run', 'product').order_by('id')
-    )
+    return snapshots
 
 
 @transaction.atomic
-def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minutes=120):
+def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minutes=120, request_id='', actor='django_api'):
     older_than_minutes = max(1, min(as_int(older_than_minutes, 120), 1440))
     cutoff = timezone.now() - timezone.timedelta(minutes=older_than_minutes)
     queryset = DailyProductSnapshot.objects.filter(
@@ -407,15 +538,27 @@ def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minut
         business_date = business_date or timezone.localdate()
         queryset = queryset.filter(business_date=business_date)
 
-    snapshot_ids = list(queryset.values_list('id', flat=True))
-    if not snapshot_ids:
+    snapshots = list(queryset.select_related('run', 'product'))
+    if not snapshots:
         return 0
 
-    return DailyProductSnapshot.objects.filter(id__in=snapshot_ids).update(
-        analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
-        status_row=DailyProductSnapshot.AnalysisStatus.PENDING,
-        updated_at=timezone.now(),
-    )
+    for snapshot in snapshots:
+        from_status = snapshot.analysis_status
+        snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
+        snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
+        snapshot.save(update_fields=['analysis_status', 'status_row', 'updated_at'])
+        log_analysis_status(
+            snapshot=snapshot,
+            event_type=AnalysisStatusLog.EventType.REQUEUED,
+            from_status=from_status,
+            to_status=snapshot.analysis_status,
+            status_row=snapshot.status_row,
+            message='تحلیل در حال اجرا stale شد و دوباره به صف برگشت.',
+            metadata={'older_than_minutes': older_than_minutes},
+            request_id=request_id,
+            actor=actor,
+        )
+    return len(snapshots)
 
 
 def find_snapshot(*, snapshot_id=None, run_key=None, product_id=None):
@@ -456,6 +599,7 @@ def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, re
     else:
         analysis_status = DailyProductSnapshot.AnalysisStatus.ANALYZED if has_result else DailyProductSnapshot.AnalysisStatus.NO_MATCH
 
+    from_status = snapshot.analysis_status
     snapshot.product_url1 = product_url1
     snapshot.product_url2 = product_url2
     snapshot.product_url3 = product_url3
@@ -473,6 +617,22 @@ def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, re
         'error_message',
         'updated_at',
     ])
+    log_analysis_status(
+        snapshot=snapshot,
+        event_type=AnalysisStatusLog.EventType.RESULT_STORED,
+        from_status=from_status,
+        to_status=snapshot.analysis_status,
+        status_row=snapshot.status_row,
+        message='نتیجه تحلیل ذخیره شد.',
+        metadata={
+            'product_url1': snapshot.product_url1,
+            'product_url2': snapshot.product_url2,
+            'product_url3': snapshot.product_url3,
+            'accepted_candidates_count': snapshot.accepted_candidates_count,
+        },
+        request_id=clean_string(data.get('request_id')),
+        actor=clean_string(data.get('actor')) or 'django_api',
+    )
     refresh_run_status(snapshot.run)
     return snapshot
 
@@ -480,9 +640,134 @@ def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, re
 @transaction.atomic
 def mark_analysis_error(*, snapshot_id=None, run_key=None, product_id=None, error_message=''):
     snapshot = find_snapshot(snapshot_id=snapshot_id, run_key=run_key, product_id=product_id)
+    from_status = snapshot.analysis_status
     snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.ERROR
     snapshot.status_row = DailyProductSnapshot.AnalysisStatus.ERROR
     snapshot.error_message = clean_string(error_message) or 'unknown analysis error'
     snapshot.save(update_fields=['analysis_status', 'status_row', 'error_message', 'updated_at'])
+    log_analysis_status(
+        snapshot=snapshot,
+        event_type=AnalysisStatusLog.EventType.ERROR,
+        from_status=from_status,
+        to_status=snapshot.analysis_status,
+        status_row=snapshot.status_row,
+        message=snapshot.error_message,
+        metadata={'retryable': False},
+        actor='django_api',
+    )
     refresh_run_status(snapshot.run)
     return snapshot
+
+
+def analysis_payload_for_run(run):
+    counts = analysis_counts_for_run(run)
+    return {
+        'run_key': str(run.run_key),
+        'analysis': {
+            'pending': counts[DailyProductSnapshot.AnalysisStatus.PENDING],
+            'running': counts[DailyProductSnapshot.AnalysisStatus.RUNNING],
+            'analyzed': counts[DailyProductSnapshot.AnalysisStatus.ANALYZED],
+            'no_match': counts[DailyProductSnapshot.AnalysisStatus.NO_MATCH],
+            'error': counts[DailyProductSnapshot.AnalysisStatus.ERROR],
+        },
+    }
+
+
+def process_analysis_snapshot(*, snapshot, request_id='', actor='django_analysis'):
+    from .analysis_engine import analyze_snapshot
+
+    try:
+        result = analyze_snapshot(snapshot, request_id=request_id, actor=actor)
+        payload = result.to_payload()
+        payload['request_id'] = request_id
+        payload['actor'] = actor
+        stored = store_analysis_result(snapshot_id=snapshot.id, result=payload)
+        log_analysis_status(
+            snapshot=stored,
+            event_type=AnalysisStatusLog.EventType.FINISHED,
+            message='تحلیل محصول کامل شد.',
+            metadata=result.to_payload(),
+            request_id=request_id,
+            actor=actor,
+        )
+        return {'ok': True, 'snapshot': stored, 'result': result}
+    except Exception as exc:
+        failed = mark_analysis_failed_for_retry(snapshot_id=snapshot.id, error_message=str(exc), request_id=request_id, actor=actor)
+        return {'ok': False, 'snapshot': failed, 'error': str(exc), 'retryable': True}
+
+
+def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_than_minutes=30, request_id='', actor='django_analysis'):
+    request_id = request_id or make_request_id()
+    limit = max(1, min(as_int(limit, 1), 10))
+    requeued_count = requeue_stale_analysis(
+        run_key=run_key,
+        business_date=business_date,
+        older_than_minutes=older_than_minutes,
+        request_id=request_id,
+        actor=actor,
+    )
+    claimed = claim_pending_analysis(
+        limit=limit,
+        run_key=run_key,
+        business_date=business_date,
+        request_id=request_id,
+        actor=actor,
+    )
+    items = []
+    success_count = 0
+    retry_count = 0
+    run = None
+    for snapshot in claimed:
+        run = snapshot.run
+        outcome = process_analysis_snapshot(snapshot=snapshot, request_id=request_id, actor=actor)
+        if outcome['ok']:
+            success_count += 1
+            stored = outcome['snapshot']
+            items.append({
+                'ok': True,
+                'snapshot_id': stored.id,
+                'product_id': stored.source_product_id,
+                'analysis_status': stored.analysis_status,
+                'accepted_candidates_count': stored.accepted_candidates_count,
+                'product_url1': stored.product_url1,
+                'product_url2': stored.product_url2,
+                'product_url3': stored.product_url3,
+            })
+        else:
+            retry_count += 1
+            failed = outcome['snapshot']
+            items.append({
+                'ok': False,
+                'snapshot_id': failed.id,
+                'product_id': failed.source_product_id,
+                'analysis_status': failed.analysis_status,
+                'retryable': True,
+                'error': outcome['error'],
+            })
+
+    if run is None and run_key:
+        run = DailyRun.objects.filter(run_key=run_key).first()
+
+    pending_queryset = DailyProductSnapshot.objects.filter(
+        fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
+        analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
+    )
+    if run_key:
+        pending_queryset = pending_queryset.filter(run__run_key=run_key)
+    else:
+        pending_queryset = pending_queryset.filter(business_date=business_date or timezone.localdate())
+    pending_count = pending_queryset.count()
+
+    return {
+        'ok': True,
+        'request_id': request_id,
+        'claimed_count': len(claimed),
+        'processed_count': len(items),
+        'success_count': success_count,
+        'retry_count': retry_count,
+        'requeued_stale_count': requeued_count,
+        'has_more': pending_count > 0,
+        'pending_count': pending_count,
+        'items': items,
+        'run': analysis_payload_for_run(run) if run else None,
+    }

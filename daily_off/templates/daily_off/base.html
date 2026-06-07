@@ -272,6 +272,13 @@
         .btn.secondary:hover { color: var(--primary-dark); background: var(--primary-weak); border-color: #ffd5bf; }
         .btn.danger { background: var(--danger); color: white; box-shadow: 0 9px 20px rgba(217, 45, 32, .14); }
         .btn.danger:hover { background: #b42318; color: white; }
+        .btn[disabled] { opacity: .62; cursor: wait; }
+        .analysis-control { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+        .analysis-progress { padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.8; }
+        .analysis-progress strong { color: var(--primary-dark); }
+        .analysis-log-list { display: grid; gap: 9px; margin-top: 14px; }
+        .analysis-log-item { padding: 11px 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--muted); font-size: 12px; line-height: 1.8; }
+        .analysis-log-item strong { color: var(--text); }
 
         .filter-bar, .filter-panel { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 16px; margin-bottom: 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
         .filter-panel { align-items: stretch; }
@@ -416,7 +423,7 @@
 
 <section class="service-strip" aria-label="ویژگی‌های سامانه">
     <div class="service-item"><span class="service-icon">۱</span><span><span class="service-title">دریافت روزانه</span><span class="service-subtitle">ثبت آفرها در اجرای هر روز</span></span></div>
-    <div class="service-item"><span class="service-icon">۲</span><span><span class="service-title">تحلیل با n8n</span><span class="service-subtitle">پردازش مرحله‌ای و قابل پیگیری</span></span></div>
+    <div class="service-item"><span class="service-icon">۲</span><span><span class="service-title">تحلیل داخل سایت</span><span class="service-subtitle">پردازش مرحله‌ای و قابل پیگیری</span></span></div>
     <div class="service-item"><span class="service-icon">۳</span><span><span class="service-title">مقایسه قیمت</span><span class="service-subtitle">بررسی مشابه‌های ارزان‌تر</span></span></div>
     <div class="service-item"><span class="service-icon">۴</span><span><span class="service-title">لینک‌های مشابه</span><span class="service-subtitle">دسترسی سریع به نتیجه‌ها</span></span></div>
 </section>

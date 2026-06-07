@@ -26,7 +26,9 @@
         <div class="similar-results">
             {% if product.latest_product_url %}<a class="btn" href="{{ product.latest_product_url }}" target="_blank">مشاهده محصول در باسلام</a>{% endif %}
             <a class="btn secondary" href="{% url 'daily_off:run_detail' latest_snapshot.run.run_key %}">مشاهده اجرای مربوط</a>
+            <button class="btn" type="button" data-analyze-snapshot data-snapshot-id="{{ latest_snapshot.id }}">تحلیل همین محصول</button>
         </div>
+        <div class="analysis-progress" data-analysis-progress>آماده تحلیل این محصول.</div>
 
         <div class="similar-results">
             {% if latest_snapshot.product_url1 %}<a class="result-link" href="{{ latest_snapshot.product_url1 }}" target="_blank">محصول مشابه ۱</a>{% endif %}
@@ -66,6 +68,25 @@
         <p class="hero-description">برای این محصول هنوز اسنپ‌شات کاملی ثبت نشده است.</p>
     </div>
 </section>
+{% endif %}
+
+{% if latest_logs %}
+<div class="section-title">
+    <div>
+        <span class="section-kicker">لاگ تحلیل</span>
+        <h2>آخرین وضعیت‌های تحلیل</h2>
+    </div>
+</div>
+<div class="analysis-log-list">
+    {% for log in latest_logs %}
+        <div class="analysis-log-item">
+            <strong>{{ log.event_type }}</strong>
+            {% if log.from_status or log.to_status %}<span> · {{ log.from_status|status_label }} ← {{ log.to_status|status_label }}</span>{% endif %}
+            {% if log.message %}<div>{{ log.message }}</div>{% endif %}
+            <div class="muted">{{ log.created_at|jalali_date }} · {{ log.actor }}{% if log.request_id %} · {{ log.request_id }}{% endif %}</div>
+        </div>
+    {% endfor %}
+</div>
 {% endif %}
 
 <div class="section-title">
@@ -109,4 +130,43 @@
         <div class="empty-card">تاریخچه‌ای ثبت نشده است.</div>
     {% endfor %}
 </div>
+
+<script>
+(function () {
+  const button = document.querySelector('[data-analyze-snapshot]');
+  const progress = document.querySelector('[data-analysis-progress]');
+  if (!button) return;
+
+  function setProgress(message) {
+    if (progress) progress.innerHTML = message;
+  }
+
+  button.addEventListener('click', async () => {
+    const snapshotId = button.dataset.snapshotId;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'در حال تحلیل...';
+    setProgress('تحلیل محصول شروع شد...');
+    try {
+      const response = await fetch(`/api/analysis/snapshots/${snapshotId}/run/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({actor: 'ui_product_detail', older_than_minutes: 30, force: true}),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        setProgress(`تحلیل کامل شد؛ وضعیت: <strong>${data.analysis_status}</strong> · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>`);
+        if (confirm('تحلیل کامل شد. صفحه تازه‌سازی شود؟')) window.location.reload();
+      } else {
+        setProgress(`تحلیل کامل نشد و محصول دوباره در صف قرار گرفت: ${data.error || 'خطای نامشخص'}`);
+      }
+    } catch (error) {
+      setProgress(`خطای ارتباط با سایت: ${error}`);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
+})();
+</script>
 {% endblock %}

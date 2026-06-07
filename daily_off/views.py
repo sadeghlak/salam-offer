@@ -10,14 +10,21 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import DailyProductSnapshot, DailyRun, Product
+from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .services import (
+    AnalysisAlreadyFinished,
+    AnalysisAlreadyRunning,
     analysis_counts_for_run,
+    analysis_payload_for_run,
     claim_pending_analysis,
+    claim_snapshot_for_analysis,
     create_or_update_run,
+    make_request_id,
     mark_analysis_error,
     mark_product_fetch_error,
     next_missing_product_batch,
+    process_analysis_batch,
+    process_analysis_snapshot,
     refresh_run_status,
     requeue_stale_analysis,
     store_analysis_result,
@@ -362,6 +369,138 @@ def api_analysis_error(request):
 
 @csrf_exempt
 @require_POST
+def api_run_snapshot_analysis(request, snapshot_id):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    request_id = payload.get('request_id') or make_request_id()
+    actor = payload.get('actor') or 'django_api'
+    force = bool(payload.get('force'))
+    stale_minutes = parse_int(payload.get('older_than_minutes'), 30)
+
+    try:
+        snapshot = claim_snapshot_for_analysis(
+            snapshot_id=snapshot_id,
+            force=force,
+            stale_minutes=stale_minutes,
+            request_id=request_id,
+            actor=actor,
+        )
+    except AnalysisAlreadyFinished as exc:
+        snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
+        return JsonResponse({
+            'ok': True,
+            'already_finished': True,
+            'message': str(exc),
+            'snapshot_id': snapshot.id,
+            'product_id': snapshot.source_product_id,
+            'analysis_status': snapshot.analysis_status,
+            'accepted_candidates_count': snapshot.accepted_candidates_count,
+            'product_url1': snapshot.product_url1,
+            'product_url2': snapshot.product_url2,
+            'product_url3': snapshot.product_url3,
+            'run': analysis_payload_for_run(snapshot.run),
+        })
+    except AnalysisAlreadyRunning as exc:
+        return JsonResponse({'ok': False, 'error': str(exc), 'retryable': True}, status=409)
+    except ObjectDoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'snapshot_not_found'}, status=404)
+
+    outcome = process_analysis_snapshot(snapshot=snapshot, request_id=request_id, actor=actor)
+    stored = outcome['snapshot']
+    return JsonResponse({
+        'ok': outcome['ok'],
+        'request_id': request_id,
+        'snapshot_id': stored.id,
+        'product_id': stored.source_product_id,
+        'analysis_status': stored.analysis_status,
+        'accepted_candidates_count': stored.accepted_candidates_count,
+        'product_url1': stored.product_url1,
+        'product_url2': stored.product_url2,
+        'product_url3': stored.product_url3,
+        'retryable': outcome.get('retryable', False),
+        'error': outcome.get('error', ''),
+        'run': analysis_payload_for_run(stored.run),
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_process_next_analysis(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    result = process_analysis_batch(
+        run_key=payload.get('run_key') or None,
+        business_date=parse_business_date(payload.get('business_date')) if payload.get('business_date') else None,
+        limit=clamp_limit(payload.get('limit'), default=1, maximum=3),
+        older_than_minutes=parse_int(payload.get('older_than_minutes'), 30),
+        request_id=payload.get('request_id') or make_request_id(),
+        actor=payload.get('actor') or 'django_api',
+    )
+    return JsonResponse(result)
+
+
+@csrf_exempt
+@require_POST
+def api_process_analysis_batch(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    result = process_analysis_batch(
+        run_key=payload.get('run_key') or None,
+        business_date=parse_business_date(payload.get('business_date')) if payload.get('business_date') else None,
+        limit=clamp_limit(payload.get('limit'), default=10, maximum=10),
+        older_than_minutes=parse_int(payload.get('older_than_minutes'), 30),
+        request_id=payload.get('request_id') or make_request_id(),
+        actor=payload.get('actor') or 'django_api',
+    )
+    return JsonResponse(result)
+
+
+@require_GET
+def api_run_analysis_status(request, run_key):
+    run = get_object_or_404(DailyRun, run_key=run_key)
+    payload = analysis_payload_for_run(run)
+    analysis = payload['analysis']
+    payload.update({
+        'ok': True,
+        'status': run.status,
+        'is_complete': analysis['pending'] == 0 and analysis['running'] == 0,
+    })
+    return JsonResponse(payload)
+
+
+@require_GET
+def api_snapshot_analysis_logs(request, snapshot_id):
+    snapshot = get_object_or_404(DailyProductSnapshot, id=snapshot_id)
+    logs = snapshot.analysis_logs.order_by('-created_at', '-id')[:50]
+    return JsonResponse({
+        'ok': True,
+        'snapshot_id': snapshot.id,
+        'logs': [
+            {
+                'id': log.id,
+                'created_at': log.created_at.isoformat(),
+                'event_type': log.event_type,
+                'from_status': log.from_status,
+                'to_status': log.to_status,
+                'status_row': log.status_row,
+                'message': log.message,
+                'metadata': log.metadata,
+                'actor': log.actor,
+                'request_id': log.request_id,
+            }
+            for log in logs
+        ],
+    })
+
+
+@csrf_exempt
+@require_POST
 def api_finish_run(request):
     payload = parse_body(request)
     if payload is None:
@@ -500,8 +639,10 @@ def product_detail(request, product_id):
     product = get_object_or_404(Product, basalam_product_id=product_id)
     snapshots = product.daily_snapshots.select_related('run').order_by('-business_date', '-captured_at')
     latest_snapshot = snapshots.first()
+    latest_logs = latest_snapshot.analysis_logs.all()[:50] if latest_snapshot else []
     return render(request, 'daily_off/product_detail.html', {
         'product': product,
         'snapshots': snapshots,
         'latest_snapshot': latest_snapshot,
+        'latest_logs': latest_logs,
     })
