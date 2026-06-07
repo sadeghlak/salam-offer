@@ -193,7 +193,7 @@
     button.textContent = 'در حال تحلیل...';
     setProgress('تحلیل یک محصول شروع شد...');
     try {
-      const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30});
+      const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30, force: true});
       if (data.ok) {
         const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
         setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${data.analysis_status}</strong>${summary}`);

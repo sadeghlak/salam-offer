@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import date
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -30,6 +31,9 @@ from .services import (
     store_analysis_result,
     store_product_snapshot,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def snapshot_to_workflow_payload(item):
@@ -380,6 +384,14 @@ def api_run_snapshot_analysis(request, snapshot_id):
     actor = payload.get('actor') or 'django_api'
     force = bool(payload.get('force'))
     stale_minutes = parse_int(payload.get('older_than_minutes'), 30)
+    logger.info(
+        'analysis snapshot api requested snapshot_id=%s request_id=%s actor=%s force=%s stale_minutes=%s',
+        snapshot_id,
+        request_id,
+        actor,
+        force,
+        stale_minutes,
+    )
 
     try:
         snapshot = claim_snapshot_for_analysis(
@@ -391,6 +403,12 @@ def api_run_snapshot_analysis(request, snapshot_id):
         )
     except AnalysisAlreadyFinished as exc:
         snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
+        logger.info(
+            'analysis snapshot api already finished snapshot_id=%s status=%s request_id=%s',
+            snapshot.id,
+            snapshot.analysis_status,
+            request_id,
+        )
         return JsonResponse({
             'ok': True,
             'already_finished': True,
