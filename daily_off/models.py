@@ -28,6 +28,9 @@ class DailyRun(models.Model):
 
     class Meta:
         ordering = ['-business_date', '-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['business_date'], name='uniq_daily_run_business_date'),
+        ]
 
     def __str__(self):
         return f'{self.business_date} / {self.status}'
@@ -124,6 +127,7 @@ class DailyProductSnapshot(models.Model):
         indexes = [
             models.Index(fields=['product', '-business_date']),
             models.Index(fields=['business_date', 'analysis_status']),
+            models.Index(fields=['analysis_status', 'fetch_status', 'business_date', 'id'], name='dps_claim_idx'),
         ]
 
     def __str__(self):

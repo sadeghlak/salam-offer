@@ -76,7 +76,8 @@ def parse_body(request):
 
 def parse_business_date(value):
     if not value:
-        return date.today()
+        from django.utils import timezone
+        return timezone.localdate()
     parsed = parse_date(str(value))
     return parsed or date.today()
 
@@ -90,7 +91,7 @@ def parse_int(value, default=0):
         return default
 
 
-def clamp_limit(value, default=5000, maximum=5000):
+def clamp_limit(value, default=100, maximum=100):
     return max(1, min(parse_int(value, default), maximum))
 
 
@@ -117,6 +118,27 @@ def compact_analysis_summary(counts):
     }
 
 
+def run_api_payload(run):
+    return {
+        'ok': True,
+        'run_key': str(run.run_key),
+        'run_id': run.id,
+        'business_date': run.business_date.isoformat(),
+        'status': run.status,
+        'input_count': run.input_count,
+        'fetched_count': run.fetched_count,
+        'error_count': run.error_count,
+        'analysis': compact_analysis_summary(analysis_counts_for_run(run)),
+    }
+
+
+def filter_analysis_scope(queryset, *, run_key=None, business_date_value=None):
+    if run_key:
+        return queryset.filter(run__run_key=run_key)
+    business_date_value = parse_business_date(business_date_value)
+    return queryset.filter(business_date=business_date_value)
+
+
 @csrf_exempt
 @require_POST
 def api_create_run(request):
@@ -132,7 +154,7 @@ def api_create_run(request):
         config_json=payload.get('config_json') or {},
         notes=payload.get('notes') or '',
     )
-    return JsonResponse({'ok': True, 'run_key': str(run.run_key), 'run_id': run.id, 'status': run.status})
+    return JsonResponse(run_api_payload(run))
 
 
 @csrf_exempt
@@ -182,10 +204,16 @@ def api_product_error(request):
 @require_GET
 def api_pending_analysis(request):
     limit = clamp_limit(request.GET.get('limit'))
-    items = DailyProductSnapshot.objects.filter(
+    queryset = DailyProductSnapshot.objects.filter(
         analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
         fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
-    ).select_related('product', 'run').order_by('business_date', 'id')[:limit]
+    )
+    queryset = filter_analysis_scope(
+        queryset,
+        run_key=request.GET.get('run_key') or None,
+        business_date_value=request.GET.get('business_date') or None,
+    )
+    items = queryset.select_related('product', 'run').order_by('id')[:limit]
 
     return JsonResponse({
         'ok': True,
@@ -204,6 +232,7 @@ def api_claim_analysis(request):
         items = claim_pending_analysis(
             limit=clamp_limit(payload.get('limit')),
             run_key=payload.get('run_key') or None,
+            business_date=parse_business_date(payload.get('business_date')) if payload.get('business_date') else None,
         )
     except (ValidationError, ValueError) as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
@@ -394,6 +423,16 @@ def run_detail(request, run_key):
         'run_summary': run_summary,
         'shown_count': snapshots.count(),
     })
+
+
+@require_POST
+def delete_run(request, run_key):
+    run = get_object_or_404(DailyRun, run_key=run_key)
+    business_date = run.business_date
+    snapshot_count = run.snapshots.count()
+    run.delete()
+    messages.success(request, f'اجرای {business_date} و {snapshot_count} اسنپ‌شات مربوط به آن حذف شد.')
+    return redirect('daily_off:dashboard')
 
 
 def product_detail(request, product_id):

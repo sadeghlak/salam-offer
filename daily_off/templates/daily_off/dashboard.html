@@ -53,7 +53,15 @@
                 </div>
             </td>
             <td class="muted">{{ run.run_key }}</td>
-            <td><a class="btn secondary" href="{% url 'daily_off:run_detail' run.run_key %}">مشاهده اجرا</a></td>
+            <td>
+                <div class="result-links">
+                    <a class="btn secondary" href="{% url 'daily_off:run_detail' run.run_key %}">مشاهده اجرا</a>
+                    <form method="post" action="{% url 'daily_off:delete_run' run.run_key %}" onsubmit="return confirm('کل داده‌های این روز حذف شود؟');">
+                        {% csrf_token %}
+                        <button class="btn danger" type="submit">حذف روز</button>
+                    </form>
+                </div>
+            </td>
         </tr>
     {% empty %}
         <tr><td colspan="8">هنوز اجرایی ثبت نشده است.</td></tr>

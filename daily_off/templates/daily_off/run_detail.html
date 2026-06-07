@@ -7,7 +7,13 @@
         <h1>اجرای {{ run.business_date|jalali_date }}</h1>
         <p class="muted">Run Key: {{ run.run_key }}</p>
     </div>
-    <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' or run.status == 'partial_failed' %}error{% elif run.status == 'running' %}info{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
+    <div class="meta-row">
+        <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' or run.status == 'partial_failed' %}error{% elif run.status == 'running' %}info{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
+        <form method="post" action="{% url 'daily_off:delete_run' run.run_key %}" onsubmit="return confirm('کل داده‌های این روز حذف شود؟');">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">حذف این روز</button>
+        </form>
+    </div>
 </div>
 
 <div class="grid">

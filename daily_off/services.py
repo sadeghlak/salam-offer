@@ -1,7 +1,7 @@
 from datetime import date
 
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.utils import timezone
 
 from .models import DailyProductSnapshot, DailyRun, Product
@@ -56,6 +56,13 @@ def clean_string(value):
     if value in (None, False):
         return ''
     return str(value).strip()
+
+
+def merge_config(existing, incoming):
+    base = existing.copy() if isinstance(existing, dict) else {}
+    if isinstance(incoming, dict):
+        base.update(incoming)
+    return base
 
 
 def product_url(product_id, vendor_identifier=''):
@@ -134,19 +141,48 @@ def normalize_product(raw_product):
 
 @transaction.atomic
 def create_or_update_run(*, business_date=None, run_key=None, input_count=0, status=DailyRun.Status.RUNNING, config_json=None, notes=''):
-    business_date = business_date or date.today()
-    defaults = {
-        'business_date': business_date,
-        'status': status,
-        'input_count': input_count,
-        'config_json': config_json or {},
-        'notes': notes,
-        'started_at': timezone.now(),
-    }
+    business_date = business_date or timezone.localdate()
+    incoming_config = config_json or {}
+
     if run_key:
-        run, _ = DailyRun.objects.update_or_create(run_key=run_key, defaults=defaults)
+        run = DailyRun.objects.filter(run_key=run_key).first()
+        if run is None:
+            run = DailyRun.objects.filter(business_date=business_date).first()
+        if run is None:
+            run = DailyRun.objects.create(
+                run_key=run_key,
+                business_date=business_date,
+                status=status,
+                input_count=input_count,
+                config_json=incoming_config,
+                notes=notes,
+                started_at=timezone.now(),
+            )
+            return run
     else:
-        run = DailyRun.objects.create(**defaults)
+        run = DailyRun.objects.filter(business_date=business_date).first()
+        if run is None:
+            run = DailyRun.objects.create(
+                business_date=business_date,
+                status=status,
+                input_count=input_count,
+                config_json=incoming_config,
+                notes=notes,
+                started_at=timezone.now(),
+            )
+            return run
+
+    run.business_date = business_date
+    run.status = status or run.status
+    run.input_count = max(run.input_count or 0, input_count or 0)
+    run.config_json = merge_config(run.config_json, incoming_config)
+    if notes:
+        run.notes = notes
+    if run.started_at is None:
+        run.started_at = timezone.now()
+    if run.status not in {DailyRun.Status.COMPLETED, DailyRun.Status.PARTIAL_FAILED, DailyRun.Status.FAILED}:
+        run.finished_at = None
+    run.save(update_fields=['business_date', 'status', 'input_count', 'config_json', 'notes', 'started_at', 'finished_at', 'updated_at'])
     return run
 
 
@@ -171,6 +207,19 @@ def store_product_snapshot(*, run, raw_product, business_date=None):
         },
     )
 
+    existing_snapshot = DailyProductSnapshot.objects.filter(run=run, source_product_id=product_id).first()
+    preserved = {}
+    if existing_snapshot:
+        preserved = {
+            'analysis_status': existing_snapshot.analysis_status,
+            'status_row': existing_snapshot.status_row,
+            'product_url1': existing_snapshot.product_url1,
+            'product_url2': existing_snapshot.product_url2,
+            'product_url3': existing_snapshot.product_url3,
+            'accepted_candidates_count': existing_snapshot.accepted_candidates_count,
+            'error_message': existing_snapshot.error_message,
+        }
+
     snapshot_defaults = {
         'product': product,
         'business_date': business_date,
@@ -182,6 +231,8 @@ def store_product_snapshot(*, run, raw_product, business_date=None):
         'error_message': '',
     }
     snapshot_defaults.update(normalized)
+    if preserved:
+        snapshot_defaults.update(preserved)
 
     snapshot, _ = DailyProductSnapshot.objects.update_or_create(
         run=run,
@@ -261,16 +312,19 @@ def refresh_run_status(run, *, explicit_status=None, notes=None, finish=False):
 
 
 @transaction.atomic
-def claim_pending_analysis(*, limit=20, run_key=None):
-    limit = max(1, min(as_int(limit, 5000), 5000))
+def claim_pending_analysis(*, limit=100, run_key=None, business_date=None):
+    limit = max(1, min(as_int(limit, 100), 100))
     queryset = DailyProductSnapshot.objects.filter(
         fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
         analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
     )
     if run_key:
         queryset = queryset.filter(run__run_key=run_key)
+    else:
+        business_date = business_date or timezone.localdate()
+        queryset = queryset.filter(business_date=business_date)
 
-    snapshot_ids = list(queryset.order_by('business_date', 'id').values_list('id', flat=True)[:limit])
+    snapshot_ids = list(queryset.order_by('id').values_list('id', flat=True)[:limit])
     if not snapshot_ids:
         return []
 
@@ -287,7 +341,7 @@ def claim_pending_analysis(*, limit=20, run_key=None):
         DailyProductSnapshot.objects.filter(
             id__in=snapshot_ids,
             analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
-        ).select_related('run', 'product').order_by('business_date', 'id')
+        ).select_related('run', 'product').order_by('id')
     )
 
 
