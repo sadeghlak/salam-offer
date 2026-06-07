@@ -113,7 +113,7 @@
 
 <div class="listing-list">
     {% for item in snapshots %}
-        <article class="listing-card">
+        <article class="listing-card" data-listing-card="{{ item.id }}">
             <div class="listing-media">
                 {% if item.photo_url %}
                     <img src="{{ item.photo_url }}" alt="{{ item.title }}">
@@ -138,10 +138,10 @@
                 {% if item.error_message %}<div class="error-note">{{ item.error_message|truncatechars:180 }}</div>{% endif %}
             </div>
 
-            <div class="listing-price">
+            <div class="listing-price" data-accepted-wrap="{{ item.id }}">
                 <div><span class="price-label">قیمت آفر</span><span class="offer-price">{{ item.price|toman }}</span></div>
                 <div><span class="price-label">قیمت قبل</span><span class="primary-price">{{ item.primary_price|toman }}</span></div>
-                {% if item.accepted_candidates_count %}<span class="chip">{{ item.accepted_candidates_count }} نتیجه پذیرفته‌شده</span>{% endif %}
+                {% if item.accepted_candidates_count %}<span class="chip" data-accepted-count="{{ item.id }}">{{ item.accepted_candidates_count }} نتیجه پذیرفته‌شده</span>{% endif %}
             </div>
 
             <div class="listing-actions">
@@ -151,7 +151,7 @@
                     <span class="badge gray">{{ item.status_row|status_label }}</span>
                 </div>
                 <button class="btn secondary" type="button" data-analyze-snapshot data-snapshot-id="{{ item.id }}">تحلیل این محصول</button>
-                <div class="result-links">
+                <div class="result-links" data-result-links="{{ item.id }}">
                     {% if item.product_url1 %}<a class="result-link" href="{{ item.product_url1 }}" target="_blank">نتیجه ۱</a>{% endif %}
                     {% if item.product_url2 %}<a class="result-link" href="{{ item.product_url2 }}" target="_blank">نتیجه ۲</a>{% endif %}
                     {% if item.product_url3 %}<a class="result-link" href="{{ item.product_url3 }}" target="_blank">نتیجه ۳</a>{% endif %}
@@ -186,6 +186,42 @@
     return response.json();
   }
 
+  function statusText(status) {
+    if (status === 'no_match') return 'محصول مشابه ارزان‌تر پیدا نشد';
+    if (status === 'analyzed') return 'تحلیل شده';
+    if (status === 'analysis_error') return 'خطای تحلیل';
+    if (status === 'analysis_running') return 'در حال تحلیل';
+    return status || '-';
+  }
+
+  function renderResultLinks(snapshotId, data) {
+    const links = document.querySelector(`[data-result-links="${snapshotId}"]`);
+    if (!links) return;
+    const resultLinks = [data.product_url1, data.product_url2, data.product_url3].filter(Boolean);
+    if (resultLinks.length) {
+      links.innerHTML = resultLinks.map((url, index) => `<a class="result-link" href="${url}" target="_blank">نتیجه ${index + 1}</a>`).join('');
+      return;
+    }
+    links.innerHTML = `<span class="badge gray">${statusText(data.analysis_status)}</span>`;
+  }
+
+  function renderAcceptedCount(snapshotId, count) {
+    const wrap = document.querySelector(`[data-accepted-wrap="${snapshotId}"]`);
+    if (!wrap) return;
+    let chip = document.querySelector(`[data-accepted-count="${snapshotId}"]`);
+    if (count > 0) {
+      if (!chip) {
+        chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.dataset.acceptedCount = snapshotId;
+        wrap.appendChild(chip);
+      }
+      chip.textContent = `${count} نتیجه پذیرفته‌شده`;
+    } else if (chip) {
+      chip.remove();
+    }
+  }
+
   async function analyzeSnapshot(button) {
     const snapshotId = button.dataset.snapshotId;
     const originalText = button.textContent;
@@ -195,12 +231,13 @@
     try {
       const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30, force: true});
       if (data.ok) {
-        const statusText = data.analysis_status === 'no_match' ? 'محصول مشابه ارزان‌تر پیدا نشد' : data.analysis_status;
+        const readableStatus = statusText(data.analysis_status);
         const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
-        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${statusText}</strong>${summary} · برای نمایش نتیجه‌ها صفحه تازه می‌شود.`);
+        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${readableStatus}</strong>${summary}`);
         const badge = document.querySelector(`[data-status-badge="${snapshotId}"]`);
-        if (badge) badge.textContent = statusText;
-        setTimeout(() => window.location.reload(), 900);
+        if (badge) badge.textContent = readableStatus;
+        renderAcceptedCount(snapshotId, data.accepted_candidates_count || 0);
+        renderResultLinks(snapshotId, data);
       } else {
         const retryText = data.retryable ? 'محصول دوباره به صف برگشت' : 'تحلیل محصول با خطا تمام شد';
         setProgress(`${retryText}: ${data.error || 'خطای نامشخص'}`);
