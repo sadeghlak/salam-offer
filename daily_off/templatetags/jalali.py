@@ -68,7 +68,7 @@ def toman(value):
         value = 0
     if not value:
         return '-'
-    return f'{value:,}'
+    return f'{value // 10:,} تومان'
 
 
 @register.filter
