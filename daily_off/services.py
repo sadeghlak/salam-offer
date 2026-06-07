@@ -187,6 +187,54 @@ def create_or_update_run(*, business_date=None, run_key=None, input_count=0, sta
 
 
 @transaction.atomic
+def next_missing_product_batch(*, business_date=None, product_ids=None, limit=100, config_json=None, notes=''):
+    business_date = business_date or timezone.localdate()
+    limit = max(1, min(as_int(limit, 100), 500))
+
+    seen = set()
+    normalized_ids = []
+    for product_id in product_ids or []:
+        product_id = as_int(product_id)
+        if not product_id or product_id in seen:
+            continue
+        seen.add(product_id)
+        normalized_ids.append(product_id)
+
+    run = create_or_update_run(
+        business_date=business_date,
+        input_count=len(normalized_ids),
+        status=DailyRun.Status.RUNNING,
+        config_json=merge_config({
+            'workflow': 'daily_off_import_v3',
+            'total_product_ids': len(normalized_ids),
+            'batch_limit': limit,
+        }, config_json or {}),
+        notes=notes,
+    )
+
+    existing_ids = set(
+        run.snapshots.filter(source_product_id__in=normalized_ids)
+        .values_list('source_product_id', flat=True)
+    )
+    missing_ids = [product_id for product_id in normalized_ids if product_id not in existing_ids]
+    batch_ids = missing_ids[:limit]
+
+    run.config_json = merge_config(run.config_json, {
+        'workflow': 'daily_off_import_v3',
+        'total_product_ids': len(normalized_ids),
+        'existing_count': len(existing_ids),
+        'remaining_count': len(missing_ids),
+        'last_batch_count': len(batch_ids),
+        'batch_limit': limit,
+        'import_complete': len(missing_ids) == 0,
+    })
+    run.input_count = max(run.input_count or 0, len(normalized_ids))
+    run.save(update_fields=['config_json', 'input_count', 'updated_at'])
+
+    return run, batch_ids, len(existing_ids), len(missing_ids)
+
+
+@transaction.atomic
 def store_product_snapshot(*, run, raw_product, business_date=None):
     business_date = business_date or run.business_date
     normalized = normalize_product(raw_product)

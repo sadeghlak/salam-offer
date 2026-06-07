@@ -17,6 +17,7 @@ from .services import (
     create_or_update_run,
     mark_analysis_error,
     mark_product_fetch_error,
+    next_missing_product_batch,
     refresh_run_status,
     store_analysis_result,
     store_product_snapshot,
@@ -155,6 +156,47 @@ def api_create_run(request):
         notes=payload.get('notes') or '',
     )
     return JsonResponse(run_api_payload(run))
+
+
+@csrf_exempt
+@require_POST
+def api_next_product_batch(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    raw_product_ids = payload.get('product_ids') or payload.get('products') or []
+    if not isinstance(raw_product_ids, list):
+        return JsonResponse({'ok': False, 'error': 'product_ids_must_be_list'}, status=400)
+
+    product_ids = []
+    for item in raw_product_ids:
+        if isinstance(item, dict):
+            product_ids.append(item.get('product_id') or item.get('id'))
+        else:
+            product_ids.append(item)
+
+    run, batch_ids, existing_count, remaining_count = next_missing_product_batch(
+        business_date=parse_business_date(payload.get('business_date')),
+        product_ids=product_ids,
+        limit=clamp_limit(payload.get('limit')),
+        config_json=payload.get('config_json') or {},
+        notes=payload.get('notes') or 'daily-off import batch requested from n8n',
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'run_key': str(run.run_key),
+        'run_id': run.id,
+        'business_date': run.business_date.isoformat(),
+        'input_count': run.input_count,
+        'existing_count': existing_count,
+        'remaining_count': remaining_count,
+        'batch_count': len(batch_ids),
+        'is_complete': remaining_count == 0,
+        'product_ids': batch_ids,
+        'products': [{'product_id': product_id} for product_id in batch_ids],
+    })
 
 
 @csrf_exempt
