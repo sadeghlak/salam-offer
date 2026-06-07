@@ -93,7 +93,7 @@
                     {% if item.photo_url %}<img class="product" src="{{ item.photo_url }}" alt="{{ item.title }}">{% endif %}
                     <div>
                         <a class="product-title" href="{% url 'daily_off:product_detail' item.source_product_id %}">{{ item.title }}</a>
-                        <div class="muted">Product ID: {{ item.source_product_id }} | Snapshot ID: {{ item.id }}</div>
+                        <div class="muted">شناسه محصول: {{ item.source_product_id }} · اسنپ‌شات: {{ item.id }}</div>
                         {% if item.product.latest_product_url %}<a class="tiny-link" href="{{ item.product.latest_product_url }}" target="_blank">مشاهده در باسلام ↗</a>{% endif %}
                     </div>
                 </div>

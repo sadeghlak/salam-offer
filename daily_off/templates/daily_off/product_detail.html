@@ -8,8 +8,8 @@
     <div>
         <div class="hero-title">{{ latest_snapshot.title }}</div>
         <div class="meta-row">
-            <span class="badge">Product ID: {{ product.basalam_product_id }}</span>
-            <span class="badge gray">Snapshot ID: {{ latest_snapshot.id }}</span>
+            <span class="badge">شناسه محصول: {{ product.basalam_product_id }}</span>
+            <span class="badge gray">اسنپ‌شات: {{ latest_snapshot.id }}</span>
             <span class="badge gray">{{ latest_snapshot.category_title }}</span>
             <span class="badge {% if latest_snapshot.analysis_status == 'analyzed' %}ok{% elif latest_snapshot.analysis_status == 'analysis_error' %}error{% elif latest_snapshot.analysis_status == 'analysis_running' %}info{% elif latest_snapshot.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}">{{ latest_snapshot.analysis_status|status_label }}</span>
             <span class="badge {% if latest_snapshot.fetch_status == 'details_fetched' %}ok{% else %}error{% endif %}">{{ latest_snapshot.fetch_status|status_label }}</span>
@@ -54,7 +54,7 @@
         <tr>
             <td>
                 <strong>{{ item.business_date|jalali_date }}</strong>
-                <div class="muted">Snapshot ID: {{ item.id }}</div>
+                <div class="muted">اسنپ‌شات: {{ item.id }}</div>
                 <a class="tiny-link" href="{% url 'daily_off:run_detail' item.run.run_key %}">اجرای مربوط</a>
             </td>
             <td><span class="offer-price">{{ item.price|toman }}</span></td>
