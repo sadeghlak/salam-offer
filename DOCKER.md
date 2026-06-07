@@ -14,6 +14,9 @@ Edit `.env`:
 DJANGO_DEBUG=0
 DJANGO_SECRET_KEY=replace-this-with-a-long-random-secret
 DJANGO_ALLOWED_HOSTS=salam-offer.titanapp.dev,your-domain.com,your-server-ip,127.0.0.1,localhost
+DJANGO_CSRF_TRUSTED_ORIGINS=https://salam-offer.titanapp.dev,https://your-domain.com
+DJANGO_CSRF_COOKIE_SECURE=1
+DJANGO_SESSION_COOKIE_SECURE=1
 
 # Production PostgreSQL. Leave empty locally to use SQLite.
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DB_NAME
