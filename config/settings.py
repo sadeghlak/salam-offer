@@ -177,3 +177,25 @@ CHEAPER_ANALYSIS_SCORE_WEIGHTS = {
     'category': float(os.getenv('CHEAPER_ANALYSIS_WEIGHT_CATEGORY', '0.20')),
     'weight': float(os.getenv('CHEAPER_ANALYSIS_WEIGHT_WEIGHT', '0.15')),
 }
+
+LOG_LEVEL = os.getenv('DJANGO_LOG_LEVEL', 'INFO')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'daily_off': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}

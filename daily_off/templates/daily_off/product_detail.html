@@ -158,7 +158,8 @@
         setProgress(`تحلیل کامل شد؛ وضعیت: <strong>${data.analysis_status}</strong> · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>`);
         if (confirm('تحلیل کامل شد. صفحه تازه‌سازی شود؟')) window.location.reload();
       } else {
-        setProgress(`تحلیل کامل نشد و محصول دوباره در صف قرار گرفت: ${data.error || 'خطای نامشخص'}`);
+        const retryText = data.retryable ? 'محصول دوباره در صف قرار گرفت' : 'تحلیل محصول با خطا تمام شد';
+        setProgress(`${retryText}: ${data.error || 'خطای نامشخص'}`);
       }
     } catch (error) {
       setProgress(`خطای ارتباط با سایت: ${error}`);

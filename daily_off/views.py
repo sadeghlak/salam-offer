@@ -353,6 +353,8 @@ def api_analysis_error(request):
             run_key=payload.get('run_key'),
             product_id=payload.get('product_id') or payload.get('source_product_id'),
             error_message=payload.get('error_message') or 'unknown analysis error',
+            request_id=payload.get('request_id') or '',
+            actor=payload.get('actor') or 'django_api',
         )
     except ValueError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=400)

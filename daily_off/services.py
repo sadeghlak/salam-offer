@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 
 from uuid import uuid4
 
@@ -8,6 +9,8 @@ from django.utils import timezone
 
 from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 
+
+logger = logging.getLogger(__name__)
 
 COUNT_UNITS = {'عددی', 'عدد', 'بسته', 'جفت'}
 TERMINAL_ANALYSIS_STATUSES = {
@@ -638,7 +641,7 @@ def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, re
 
 
 @transaction.atomic
-def mark_analysis_error(*, snapshot_id=None, run_key=None, product_id=None, error_message=''):
+def mark_analysis_error(*, snapshot_id=None, run_key=None, product_id=None, error_message='', request_id='', actor='django_api'):
     snapshot = find_snapshot(snapshot_id=snapshot_id, run_key=run_key, product_id=product_id)
     from_status = snapshot.analysis_status
     snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.ERROR
@@ -653,7 +656,8 @@ def mark_analysis_error(*, snapshot_id=None, run_key=None, product_id=None, erro
         status_row=snapshot.status_row,
         message=snapshot.error_message,
         metadata={'retryable': False},
-        actor='django_api',
+        request_id=request_id,
+        actor=actor,
     )
     refresh_run_status(snapshot.run)
     return snapshot
@@ -690,10 +694,24 @@ def process_analysis_snapshot(*, snapshot, request_id='', actor='django_analysis
             request_id=request_id,
             actor=actor,
         )
+        logger.info(
+            'analysis snapshot finished snapshot_id=%s product_id=%s status=%s accepted=%s request_id=%s',
+            stored.id,
+            stored.source_product_id,
+            stored.analysis_status,
+            stored.accepted_candidates_count,
+            request_id,
+        )
         return {'ok': True, 'snapshot': stored, 'result': result}
     except Exception as exc:
-        failed = mark_analysis_failed_for_retry(snapshot_id=snapshot.id, error_message=str(exc), request_id=request_id, actor=actor)
-        return {'ok': False, 'snapshot': failed, 'error': str(exc), 'retryable': True}
+        logger.exception(
+            'analysis snapshot failed snapshot_id=%s product_id=%s request_id=%s',
+            snapshot.id,
+            snapshot.source_product_id,
+            request_id,
+        )
+        failed = mark_analysis_error(snapshot_id=snapshot.id, error_message=str(exc), request_id=request_id, actor=actor)
+        return {'ok': False, 'snapshot': failed, 'error': str(exc), 'retryable': False}
 
 
 def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_than_minutes=30, request_id='', actor='django_analysis'):
@@ -712,6 +730,16 @@ def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_t
         business_date=business_date,
         request_id=request_id,
         actor=actor,
+    )
+    logger.info(
+        'analysis batch started request_id=%s run_key=%s business_date=%s limit=%s requeued=%s claimed=%s actor=%s',
+        request_id,
+        run_key or '',
+        business_date or '',
+        limit,
+        requeued_count,
+        len(claimed),
+        actor,
     )
     items = []
     success_count = 0

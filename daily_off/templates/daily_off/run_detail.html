@@ -195,11 +195,13 @@
     try {
       const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30});
       if (data.ok) {
-        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${data.analysis_status}</strong>`);
+        const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
+        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${data.analysis_status}</strong>${summary}`);
         const badge = document.querySelector(`[data-status-badge="${snapshotId}"]`);
         if (badge) badge.textContent = data.analysis_status;
       } else {
-        setProgress(`تحلیل محصول دوباره به صف برگشت: ${data.error || 'خطای نامشخص'}`);
+        const retryText = data.retryable ? 'محصول دوباره به صف برگشت' : 'تحلیل محصول با خطا تمام شد';
+        setProgress(`${retryText}: ${data.error || 'خطای نامشخص'}`);
       }
     } catch (error) {
       setProgress(`خطای ارتباط با سایت: ${error}`);
@@ -221,7 +223,9 @@
         const item = (data.items || [])[0];
         const status = item ? item.analysis_status : 'بدون آیتم';
         const pending = data.pending_count ?? 0;
-        setProgress(`پردازش‌شده: <strong>${data.processed_count}</strong> · وضعیت آخر: <strong>${status}</strong> · باقی‌مانده در صف: <strong>${pending}</strong>`);
+        const failed = data.retry_count ? ` · خطا: <strong>${data.retry_count}</strong>` : '';
+        const accepted = item && item.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${item.accepted_candidates_count}</strong>` : '';
+        setProgress(`پردازش‌شده: <strong>${data.processed_count}</strong> · وضعیت آخر: <strong>${status}</strong>${accepted}${failed} · باقی‌مانده در صف: <strong>${pending}</strong>`);
         if (data.has_more && shouldContinue) {
           setTimeout(analyzeNextLoop, 400);
           return;
