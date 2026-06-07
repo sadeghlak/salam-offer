@@ -2,71 +2,80 @@
 {% load jalali %}
 {% block title %}داشبورد سلام آفر{% endblock %}
 {% block content %}
-<div class="page-head">
-    <div>
+<section class="page-hero">
+    <div class="hero-content">
+        <span class="hero-eyebrow">مرکز پایش آفرهای روزانه</span>
         <h1>داشبورد سلام آفر</h1>
-        <p class="muted">نمای روزانه آفرها، محصولات ذخیره‌شده و وضعیت بررسی قیمت‌ها.</p>
+        <p class="hero-description">نمای روزانه آفرها، محصولات ذخیره‌شده و وضعیت بررسی قیمت‌ها؛ با چیدمانی شبیه بازار برای پیدا کردن سریع اجراها و وضعیت صف تحلیل.</p>
+        <div class="hero-chip-row">
+            <span class="chip primary">کل اجراها <strong>{{ totals.runs }}</strong></span>
+            <span class="chip">محصولات یکتا <strong>{{ totals.products }}</strong></span>
+            <span class="chip">در انتظار تحلیل <strong>{{ totals.pending_analysis }}</strong></span>
+        </div>
+    </div>
+    <div class="hero-panel">
+        <div class="mini-metric"><span>تحلیل شده</span><strong>{{ totals.analyzed }}</strong></div>
+        <div class="mini-metric"><span>بدون نتیجه</span><strong>{{ totals.no_match }}</strong></div>
+        <div class="mini-metric"><span>خطای تحلیل / دریافت</span><strong>{{ totals.analysis_errors }} / {{ totals.fetch_errors }}</strong></div>
+    </div>
+</section>
+
+<div class="section-title">
+    <div>
+        <span class="section-kicker">خلاصه سامانه</span>
+        <h2>شاخص‌های امروز و کل داده‌ها</h2>
     </div>
 </div>
 
-<div class="grid">
-    <div class="card"><span class="metric-label">کل اجراها</span><div class="metric">{{ totals.runs }}</div></div>
-    <div class="card"><span class="metric-label">محصولات یکتا</span><div class="metric">{{ totals.products }}</div></div>
-    <div class="card"><span class="metric-label">اسنپ‌شات‌ها</span><div class="metric">{{ totals.snapshots }}</div></div>
-    <div class="card"><span class="metric-label">در انتظار تحلیل</span><div class="metric">{{ totals.pending_analysis }}</div></div>
-    <div class="card"><span class="metric-label">در حال تحلیل</span><div class="metric">{{ totals.running_analysis }}</div></div>
-    <div class="card"><span class="metric-label">تحلیل شده</span><div class="metric">{{ totals.analyzed }}</div></div>
-    <div class="card"><span class="metric-label">بدون نتیجه</span><div class="metric">{{ totals.no_match }}</div></div>
-    <div class="card"><span class="metric-label">خطای تحلیل/دریافت</span><div class="metric">{{ totals.analysis_errors }} / {{ totals.fetch_errors }}</div></div>
+<div class="stat-grid">
+    <div class="stat-card"><div class="stat-card-head"><span class="metric-label">کل اجراها</span><span class="stat-icon">ر</span></div><div class="metric">{{ totals.runs }}</div></div>
+    <div class="stat-card"><div class="stat-card-head"><span class="metric-label">محصولات یکتا</span><span class="stat-icon">ک</span></div><div class="metric">{{ totals.products }}</div></div>
+    <div class="stat-card"><div class="stat-card-head"><span class="metric-label">اسنپ‌شات‌ها</span><span class="stat-icon">س</span></div><div class="metric">{{ totals.snapshots }}</div></div>
+    <div class="stat-card warning"><div class="stat-card-head"><span class="metric-label">در انتظار تحلیل</span><span class="stat-icon">⏳</span></div><div class="metric">{{ totals.pending_analysis }}</div></div>
+    <div class="stat-card warning"><div class="stat-card-head"><span class="metric-label">در حال تحلیل</span><span class="stat-icon">↻</span></div><div class="metric">{{ totals.running_analysis }}</div></div>
+    <div class="stat-card success"><div class="stat-card-head"><span class="metric-label">تحلیل شده</span><span class="stat-icon">✓</span></div><div class="metric">{{ totals.analyzed }}</div></div>
+    <div class="stat-card"><div class="stat-card-head"><span class="metric-label">بدون نتیجه</span><span class="stat-icon">—</span></div><div class="metric">{{ totals.no_match }}</div></div>
+    <div class="stat-card danger"><div class="stat-card-head"><span class="metric-label">خطای تحلیل/دریافت</span><span class="stat-icon">!</span></div><div class="metric">{{ totals.analysis_errors }} / {{ totals.fetch_errors }}</div></div>
 </div>
 
-<h2>اجراهای اخیر</h2>
-<div class="table-card">
-<table>
-    <thead>
-    <tr>
-        <th>تاریخ شمسی</th>
-        <th>وضعیت</th>
-        <th>ورودی</th>
-        <th>جزئیات موفق</th>
-        <th>خطا</th>
-        <th>خلاصه تحلیل</th>
-        <th>Run Key</th>
-        <th>جزئیات</th>
-    </tr>
-    </thead>
-    <tbody>
+<div class="section-title">
+    <div>
+        <span class="section-kicker">اجرای روزانه</span>
+        <h2>اجراهای اخیر</h2>
+    </div>
+    <span class="chip">مرتب‌شده بر اساس آخرین اجرا</span>
+</div>
+
+<div class="run-list">
     {% for run in runs %}
-        <tr>
-            <td><strong>{{ run.business_date|jalali_date }}</strong></td>
-            <td><span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' or run.status == 'partial_failed' %}error{% elif run.status == 'running' %}info{% else %}pending{% endif %}">{{ run.status|status_label }}</span></td>
-            <td>{{ run.input_count }}</td>
-            <td>{{ run.fetched_count }}</td>
-            <td>{{ run.error_count }}</td>
-            <td>
-                <div class="summary-line">
-                    <span>در انتظار: {{ run.analysis_summary.pending }}</span>
-                    <span>در حال تحلیل: {{ run.analysis_summary.running }}</span>
-                    <span>تحلیل شده: {{ run.analysis_summary.analyzed }}</span>
-                    <span>بدون نتیجه: {{ run.analysis_summary.no_match }}</span>
-                    <span>خطا: {{ run.analysis_summary.error }}</span>
+        <article class="run-card">
+            <div>
+                <div class="run-date">{{ run.business_date|jalali_date }}</div>
+                <div class="meta-row">
+                    <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' or run.status == 'partial_failed' %}error{% elif run.status == 'running' %}info{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
                 </div>
-            </td>
-            <td class="muted">{{ run.run_key }}</td>
-            <td>
-                <div class="result-links">
-                    <a class="btn secondary" href="{% url 'daily_off:run_detail' run.run_key %}">مشاهده اجرا</a>
-                    <form method="post" action="{% url 'daily_off:delete_run' run.run_key %}" onsubmit="return confirm('کل داده‌های این روز حذف شود؟');">
-                        {% csrf_token %}
-                        <button class="btn danger" type="submit">حذف روز</button>
-                    </form>
-                </div>
-            </td>
-        </tr>
+                <div class="run-key">{{ run.run_key }}</div>
+            </div>
+            <div class="run-counts">
+                <div class="mini-metric"><span>ورودی</span><strong>{{ run.input_count }}</strong></div>
+                <div class="mini-metric"><span>جزئیات موفق</span><strong>{{ run.fetched_count }}</strong></div>
+                <div class="mini-metric"><span>خطا</span><strong>{{ run.error_count }}</strong></div>
+                <div class="mini-metric"><span>در انتظار</span><strong>{{ run.analysis_summary.pending }}</strong></div>
+                <div class="mini-metric"><span>تحلیل شده</span><strong>{{ run.analysis_summary.analyzed }}</strong></div>
+                <div class="mini-metric"><span>در حال تحلیل</span><strong>{{ run.analysis_summary.running }}</strong></div>
+                <div class="mini-metric"><span>بدون نتیجه</span><strong>{{ run.analysis_summary.no_match }}</strong></div>
+                <div class="mini-metric"><span>خطای تحلیل</span><strong>{{ run.analysis_summary.error }}</strong></div>
+            </div>
+            <div class="run-card-actions">
+                <a class="btn" href="{% url 'daily_off:run_detail' run.run_key %}">مشاهده اجرا</a>
+                <form method="post" action="{% url 'daily_off:delete_run' run.run_key %}" onsubmit="return confirm('کل داده‌های این روز حذف شود؟');">
+                    {% csrf_token %}
+                    <button class="btn danger" type="submit">حذف روز</button>
+                </form>
+            </div>
+        </article>
     {% empty %}
-        <tr><td colspan="8">هنوز اجرایی ثبت نشده است.</td></tr>
+        <div class="empty-card">هنوز اجرایی ثبت نشده است.</div>
     {% endfor %}
-    </tbody>
-</table>
 </div>
 {% endblock %}
