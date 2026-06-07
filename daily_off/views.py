@@ -19,6 +19,7 @@ from .services import (
     mark_product_fetch_error,
     next_missing_product_batch,
     refresh_run_status,
+    requeue_stale_analysis,
     store_analysis_result,
     store_product_snapshot,
 )
@@ -283,6 +284,24 @@ def api_claim_analysis(request):
         'ok': True,
         'claimed_count': len(items),
         'items': [snapshot_to_workflow_payload(item) for item in items],
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_requeue_stale_analysis(request):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    requeued_count = requeue_stale_analysis(
+        run_key=payload.get('run_key') or None,
+        business_date=parse_business_date(payload.get('business_date')) if payload.get('business_date') else None,
+        older_than_minutes=parse_int(payload.get('older_than_minutes'), 120),
+    )
+    return JsonResponse({
+        'ok': True,
+        'requeued_count': requeued_count,
     })
 
 

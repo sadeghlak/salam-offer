@@ -393,6 +393,31 @@ def claim_pending_analysis(*, limit=100, run_key=None, business_date=None):
     )
 
 
+@transaction.atomic
+def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minutes=120):
+    older_than_minutes = max(1, min(as_int(older_than_minutes, 120), 1440))
+    cutoff = timezone.now() - timezone.timedelta(minutes=older_than_minutes)
+    queryset = DailyProductSnapshot.objects.filter(
+        analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
+        updated_at__lt=cutoff,
+    )
+    if run_key:
+        queryset = queryset.filter(run__run_key=run_key)
+    else:
+        business_date = business_date or timezone.localdate()
+        queryset = queryset.filter(business_date=business_date)
+
+    snapshot_ids = list(queryset.values_list('id', flat=True))
+    if not snapshot_ids:
+        return 0
+
+    return DailyProductSnapshot.objects.filter(id__in=snapshot_ids).update(
+        analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING,
+        status_row=DailyProductSnapshot.AnalysisStatus.PENDING,
+        updated_at=timezone.now(),
+    )
+
+
 def find_snapshot(*, snapshot_id=None, run_key=None, product_id=None):
     queryset = DailyProductSnapshot.objects.select_related('run', 'product')
     if snapshot_id:
