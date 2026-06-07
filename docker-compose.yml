@@ -1,0 +1,22 @@
+services:
+  web:
+    build: .
+    container_name: salam_offer_web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "${DJANGO_DEBUG:-0}"
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-change-me-for-hosting}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,salam-offer.titanapp.dev}"
+      SQLITE_PATH: "${SQLITE_PATH:-/app/data/db.sqlite3}"
+      PORT: "${PORT:-8000}"
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
+      WEB_TIMEOUT: "${WEB_TIMEOUT:-120}"
+    volumes:
+      - salam_offer_data:/app/data
+      - salam_offer_static:/app/staticfiles
+
+volumes:
+  salam_offer_data:
+  salam_offer_static:

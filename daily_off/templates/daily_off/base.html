@@ -1,0 +1,129 @@
+{% load jalali %}
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}سلام آفر{% endblock %}</title>
+    <style>
+        :root {
+            --bg: #eef7f5;
+            --card: rgba(255, 255, 255, .92);
+            --text: #102a43;
+            --muted: #64748b;
+            --line: #dbe7e4;
+            --primary: #0f766e;
+            --primary-dark: #115e59;
+            --accent: #14b8a6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #16a34a;
+            --shadow: 0 18px 45px rgba(15, 118, 110, .12);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Tahoma, Arial, sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(20,184,166,.18), transparent 34rem),
+                linear-gradient(135deg, #f8fafc 0%, var(--bg) 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { color: var(--primary-dark); }
+        .topbar {
+            background: linear-gradient(135deg, var(--primary), #0b4f4a);
+            color: white;
+            padding: 22px 32px;
+            box-shadow: 0 12px 28px rgba(15, 118, 110, .2);
+        }
+        .topbar-inner { max-width: 1360px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+        .brand { display: flex; align-items: center; gap: 12px; color: white; }
+        .brand-mark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 16px; background: rgba(255,255,255,.16); font-size: 24px; }
+        .brand-title { font-weight: 800; font-size: 22px; }
+        .brand-subtitle { color: #ccfbf1; font-size: 13px; margin-top: 4px; }
+        .top-meta { color: #d1fae5; font-size: 13px; }
+        main { padding: 30px 22px 48px; max-width: 1360px; margin: 0 auto; }
+        .page-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 22px; }
+        h1 { margin: 0; font-size: 28px; letter-spacing: -.5px; }
+        h2 { margin: 28px 0 14px; font-size: 20px; }
+        .muted { color: var(--muted); font-size: 13px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: var(--card); border: 1px solid rgba(255,255,255,.7); border-radius: 22px; padding: 20px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
+        .metric-label { color: var(--muted); font-size: 13px; }
+        .metric { font-size: 30px; font-weight: 900; margin-top: 10px; color: var(--primary-dark); }
+        .table-card { background: var(--card); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; background: transparent; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; }
+        th { background: #f0fdfa; color: #115e59; font-size: 12px; font-weight: 800; white-space: nowrap; }
+        tr:hover td { background: rgba(20,184,166,.045); }
+        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .badge.pending { background: #fef3c7; color: #92400e; }
+        .badge.error { background: #fee2e2; color: #991b1b; }
+        .badge.ok { background: #dcfce7; color: #166534; }
+        .badge.gray { background: #f1f5f9; color: #475569; }
+        .badge.info { background: #dbeafe; color: #1d4ed8; }
+        .badge.warning { background: #ffedd5; color: #c2410c; }
+        .summary-line { display: flex; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+        .error-note { margin-top: 8px; color: #991b1b; background: #fee2e2; border-radius: 12px; padding: 8px 10px; font-size: 12px; line-height: 1.7; }
+        .debug-note { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+        .inline-field { min-width: 230px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: white; color: var(--text); font-family: inherit; }
+        .messages { display: grid; gap: 10px; margin-bottom: 18px; }
+        .message { padding: 12px 16px; border-radius: 16px; background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; font-size: 13px; line-height: 1.8; }
+        .message.error { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        .message.success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+        .message.warning { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+        img.product { width: 72px; height: 72px; object-fit: cover; border-radius: 18px; background: #e2e8f0; box-shadow: 0 8px 20px rgba(15,23,42,.12); }
+        .product-cell { display: flex; align-items: center; gap: 14px; min-width: 320px; }
+        .product-title { font-weight: 800; color: #0f172a; line-height: 1.8; }
+        .tiny-link { color: var(--muted); font-size: 12px; display: inline-block; margin-top: 5px; }
+        .offer-price { color: var(--success); font-size: 18px; font-weight: 900; white-space: nowrap; }
+        .primary-price { color: #94a3b8; text-decoration: line-through; white-space: nowrap; }
+        .price-label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 16px; margin-bottom: 18px; border-radius: 22px; background: rgba(255,255,255,.75); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(15,23,42,.06); }
+        .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+        select, button { font-family: inherit; }
+        select { min-width: 210px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: white; color: var(--text); }
+        .btn { border: 0; border-radius: 14px; padding: 10px 16px; background: var(--primary); color: white; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; }
+        .btn.secondary { background: #e2e8f0; color: #334155; }
+        .result-links { display: flex; flex-direction: column; gap: 7px; min-width: 140px; }
+        .result-link { padding: 6px 9px; border-radius: 10px; background: #ecfeff; color: #0e7490; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cffafe; }
+        .hero { display: grid; grid-template-columns: 180px 1fr; gap: 24px; align-items: center; }
+        .hero img { width: 180px; height: 180px; border-radius: 30px; object-fit: cover; box-shadow: var(--shadow); background: #e2e8f0; }
+        .hero-title { font-size: 26px; font-weight: 900; margin-bottom: 14px; line-height: 1.7; }
+        .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+        @media (max-width: 760px) {
+            .topbar-inner, .page-head { align-items: flex-start; flex-direction: column; }
+            main { padding: 20px 12px; }
+            .table-card { overflow-x: auto; }
+            .hero { grid-template-columns: 1fr; }
+            .hero img { width: 100%; height: 240px; }
+        }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" href="{% url 'daily_off:dashboard' %}">
+            <span class="brand-mark">٪</span>
+            <span>
+                <span class="brand-title">سلام آفر</span>
+                <span class="brand-subtitle">داشبورد محصولات دیلی‌آف و تحلیل قیمت</span>
+            </span>
+        </a>
+        <div class="top-meta">امروز: {% now "Y-m-d" %}</div>
+    </div>
+</header>
+<main>
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>
