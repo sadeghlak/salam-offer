@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,12 +82,36 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    parsed_database_url = urlparse(DATABASE_URL)
+    database_options = {}
+    query_options = parse_qs(parsed_database_url.query)
+    if env_bool('DATABASE_SSL_REQUIRE', default=False):
+        database_options['sslmode'] = 'require'
+    elif query_options.get('sslmode'):
+        database_options['sslmode'] = query_options['sslmode'][0]
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed_database_url.path.lstrip('/'),
+            'USER': parsed_database_url.username or '',
+            'PASSWORD': parsed_database_url.password or '',
+            'HOST': parsed_database_url.hostname or '',
+            'PORT': parsed_database_url.port or '5432',
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': database_options,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation

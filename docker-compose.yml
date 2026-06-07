@@ -9,6 +9,8 @@ services:
       DJANGO_DEBUG: "${DJANGO_DEBUG:-0}"
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-change-me-for-hosting}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,salam-offer.titanapp.dev}"
+      DATABASE_URL: "${DATABASE_URL:-}"
+      DATABASE_SSL_REQUIRE: "${DATABASE_SSL_REQUIRE:-0}"
       SQLITE_PATH: "${SQLITE_PATH:-/app/data/db.sqlite3}"
       PORT: "${PORT:-8000}"
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
