@@ -488,7 +488,7 @@ def mark_analysis_failed_for_retry(*, snapshot_id=None, run_key=None, product_id
 
 
 @transaction.atomic
-def claim_pending_analysis(*, limit=100, run_key=None, business_date=None, request_id='', actor='django_api'):
+def claim_pending_analysis(*, limit=100, run_key=None, business_date=None, all_dates=False, request_id='', actor='django_api'):
     limit = max(1, min(as_int(limit, 100), 100))
     queryset = DailyProductSnapshot.objects.filter(
         fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
@@ -496,7 +496,7 @@ def claim_pending_analysis(*, limit=100, run_key=None, business_date=None, reque
     )
     if run_key:
         queryset = queryset.filter(run__run_key=run_key)
-    else:
+    elif not all_dates:
         business_date = business_date or timezone.localdate()
         queryset = queryset.filter(business_date=business_date)
 
@@ -528,7 +528,7 @@ def claim_pending_analysis(*, limit=100, run_key=None, business_date=None, reque
 
 
 @transaction.atomic
-def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minutes=120, request_id='', actor='django_api'):
+def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minutes=120, all_dates=False, request_id='', actor='django_api'):
     older_than_minutes = max(1, min(as_int(older_than_minutes, 120), 1440))
     cutoff = timezone.now() - timezone.timedelta(minutes=older_than_minutes)
     queryset = DailyProductSnapshot.objects.filter(
@@ -537,7 +537,7 @@ def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minut
     )
     if run_key:
         queryset = queryset.filter(run__run_key=run_key)
-    else:
+    elif not all_dates:
         business_date = business_date or timezone.localdate()
         queryset = queryset.filter(business_date=business_date)
 
@@ -562,6 +562,62 @@ def requeue_stale_analysis(*, run_key=None, business_date=None, older_than_minut
             actor=actor,
         )
     return len(snapshots)
+
+
+@transaction.atomic
+def enqueue_snapshot_analysis(*, snapshot_id, force=False, stale_minutes=30, request_id='', actor='django_api'):
+    snapshot = DailyProductSnapshot.objects.select_for_update().select_related('run', 'product').get(id=snapshot_id)
+    now = timezone.now()
+    stale_cutoff = now - timezone.timedelta(minutes=max(1, as_int(stale_minutes, 30)))
+
+    if snapshot.fetch_status != DailyProductSnapshot.FetchStatus.DETAILS_FETCHED:
+        raise ValueError('snapshot details are not fetched')
+
+    if snapshot.analysis_status == DailyProductSnapshot.AnalysisStatus.RUNNING:
+        if not force and snapshot.updated_at >= stale_cutoff:
+            return snapshot, False, 'already_running'
+        from_status = snapshot.analysis_status
+        snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
+        snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
+        snapshot.save(update_fields=['analysis_status', 'status_row', 'updated_at'])
+        log_analysis_status(
+            snapshot=snapshot,
+            event_type=AnalysisStatusLog.EventType.REQUEUED,
+            from_status=from_status,
+            to_status=snapshot.analysis_status,
+            status_row=snapshot.status_row,
+            message='تحلیل در حال اجرا برای پردازش worker دوباره در صف قرار گرفت.',
+            metadata={'stale_minutes': stale_minutes, 'forced': force},
+            request_id=request_id,
+            actor=actor,
+        )
+
+    if snapshot.analysis_status in TERMINAL_ANALYSIS_STATUSES and not force:
+        return snapshot, False, 'already_finished'
+
+    from_status = snapshot.analysis_status
+    if force:
+        snapshot.error_message = ''
+
+    snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
+    snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
+    update_fields = ['analysis_status', 'status_row', 'updated_at']
+    if force:
+        update_fields.append('error_message')
+    snapshot.save(update_fields=update_fields)
+    log_analysis_status(
+        snapshot=snapshot,
+        event_type=AnalysisStatusLog.EventType.QUEUED,
+        from_status=from_status,
+        to_status=snapshot.analysis_status,
+        status_row=snapshot.status_row,
+        message='محصول برای پردازش worker در صف تحلیل قرار گرفت.',
+        metadata={'forced': force},
+        request_id=request_id,
+        actor=actor,
+    )
+    refresh_run_status(snapshot.run)
+    return snapshot, True, 'queued'
 
 
 def find_snapshot(*, snapshot_id=None, run_key=None, product_id=None):
@@ -714,13 +770,14 @@ def process_analysis_snapshot(*, snapshot, request_id='', actor='django_analysis
         return {'ok': False, 'snapshot': failed, 'error': str(exc), 'retryable': False}
 
 
-def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_than_minutes=30, request_id='', actor='django_analysis'):
+def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_than_minutes=30, all_dates=False, request_id='', actor='django_analysis'):
     request_id = request_id or make_request_id()
     limit = max(1, min(as_int(limit, 1), 10))
     requeued_count = requeue_stale_analysis(
         run_key=run_key,
         business_date=business_date,
         older_than_minutes=older_than_minutes,
+        all_dates=all_dates,
         request_id=request_id,
         actor=actor,
     )
@@ -728,14 +785,16 @@ def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_t
         limit=limit,
         run_key=run_key,
         business_date=business_date,
+        all_dates=all_dates,
         request_id=request_id,
         actor=actor,
     )
     logger.info(
-        'analysis batch started request_id=%s run_key=%s business_date=%s limit=%s requeued=%s claimed=%s actor=%s',
+        'analysis batch started request_id=%s run_key=%s business_date=%s all_dates=%s limit=%s requeued=%s claimed=%s actor=%s',
         request_id,
         run_key or '',
         business_date or '',
+        all_dates,
         limit,
         requeued_count,
         len(claimed),
@@ -769,7 +828,7 @@ def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_t
                 'snapshot_id': failed.id,
                 'product_id': failed.source_product_id,
                 'analysis_status': failed.analysis_status,
-                'retryable': True,
+                'retryable': outcome.get('retryable', False),
                 'error': outcome['error'],
             })
 
@@ -782,7 +841,7 @@ def process_analysis_batch(*, run_key=None, business_date=None, limit=1, older_t
     )
     if run_key:
         pending_queryset = pending_queryset.filter(run__run_key=run_key)
-    else:
+    elif not all_dates:
         pending_queryset = pending_queryset.filter(business_date=business_date or timezone.localdate())
     pending_count = pending_queryset.count()
 

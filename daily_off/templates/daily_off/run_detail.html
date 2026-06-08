@@ -150,7 +150,7 @@
                     <span class="badge {% if item.analysis_status == 'analyzed' %}ok{% elif item.analysis_status == 'analysis_error' %}error{% elif item.analysis_status == 'analysis_running' %}info{% elif item.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}" data-status-badge="{{ item.id }}">{{ item.analysis_status|status_label }}</span>
                     <span class="badge gray">{{ item.status_row|status_label }}</span>
                 </div>
-                <button class="btn secondary" type="button" data-analyze-snapshot data-snapshot-id="{{ item.id }}">تحلیل این محصول</button>
+                <button class="btn secondary" type="button" data-analyze-snapshot data-snapshot-id="{{ item.id }}" data-analysis-status="{{ item.analysis_status }}">تحلیل این محصول</button>
                 <div class="result-links" data-result-links="{{ item.id }}">
                     {% if item.product_url1 %}<a class="result-link" href="{{ item.product_url1 }}" target="_blank">نتیجه ۱</a>{% endif %}
                     {% if item.product_url2 %}<a class="result-link" href="{{ item.product_url2 }}" target="_blank">نتیجه ۲</a>{% endif %}
@@ -186,7 +186,13 @@
     return response.json();
   }
 
+  async function getJson(url) {
+    const response = await fetch(url, {headers: {'Accept': 'application/json'}});
+    return response.json();
+  }
+
   function statusText(status) {
+    if (status === 'analysis_pending') return 'در صف تحلیل';
     if (status === 'no_match') return 'محصول مشابه ارزان‌تر پیدا نشد';
     if (status === 'analyzed') return 'تحلیل شده';
     if (status === 'analysis_error') return 'خطای تحلیل';
@@ -222,51 +228,94 @@
     }
   }
 
+  function renderSnapshotState(snapshotId, data) {
+    const readableStatus = statusText(data.analysis_status);
+    const badge = document.querySelector(`[data-status-badge="${snapshotId}"]`);
+    if (badge) badge.textContent = readableStatus;
+    renderAcceptedCount(snapshotId, data.accepted_candidates_count || 0);
+    renderResultLinks(snapshotId, data);
+    return readableStatus;
+  }
+
+  function pollSnapshotStatus(snapshotId, button, originalText, attempt = 0) {
+    getJson(`/api/analysis/snapshots/${snapshotId}/status/`).then((data) => {
+      if (!data.ok) {
+        setProgress(`خطا در دریافت وضعیت: ${data.error || 'خطای نامشخص'}`);
+        button.disabled = false;
+        button.textContent = originalText;
+        return;
+      }
+      const readableStatus = renderSnapshotState(snapshotId, data);
+      if (data.is_complete) {
+        const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
+        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${readableStatus}</strong>${summary}`);
+        button.disabled = false;
+        button.textContent = originalText;
+        button.dataset.analysisStatus = data.analysis_status;
+        return;
+      }
+      setProgress(`محصول ${data.product_id} در حال پردازش است؛ وضعیت: <strong>${readableStatus}</strong>`);
+      const delay = attempt < 3 ? 1000 : 2000;
+      setTimeout(() => pollSnapshotStatus(snapshotId, button, originalText, attempt + 1), delay);
+    }).catch((error) => {
+      setProgress(`خطای ارتباط با سایت: ${error}`);
+      button.disabled = false;
+      button.textContent = originalText;
+    });
+  }
+
   async function analyzeSnapshot(button) {
     const snapshotId = button.dataset.snapshotId;
     const originalText = button.textContent;
+    const terminalStatuses = ['analyzed', 'no_match', 'analysis_error'];
+    const currentStatus = button.dataset.analysisStatus || '';
+    const force = terminalStatuses.includes(currentStatus) ? confirm('نتیجه قبلی این محصول جایگزین شود؟') : false;
+    if (terminalStatuses.includes(currentStatus) && !force) return;
+
     button.disabled = true;
-    button.textContent = 'در حال تحلیل...';
-    setProgress('تحلیل یک محصول شروع شد...');
+    button.textContent = 'ارسال به صف...';
+    setProgress('محصول برای تحلیل در صف worker قرار می‌گیرد...');
     try {
-      const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30, force: true});
+      const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_run_detail', older_than_minutes: 30, force});
       if (data.ok) {
-        const readableStatus = statusText(data.analysis_status);
-        const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
-        setProgress(`تحلیل محصول ${data.product_id} کامل شد؛ وضعیت: <strong>${readableStatus}</strong>${summary}`);
-        const badge = document.querySelector(`[data-status-badge="${snapshotId}"]`);
-        if (badge) badge.textContent = readableStatus;
-        renderAcceptedCount(snapshotId, data.accepted_candidates_count || 0);
-        renderResultLinks(snapshotId, data);
+        const readableStatus = renderSnapshotState(snapshotId, data);
+        if (data.queued || data.analysis_status === 'analysis_pending' || data.analysis_status === 'analysis_running') {
+          button.textContent = 'در حال پردازش...';
+          setProgress(`محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
+          setTimeout(() => pollSnapshotStatus(snapshotId, button, originalText), 1000);
+        } else {
+          const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
+          setProgress(`وضعیت محصول ${data.product_id}: <strong>${readableStatus}</strong>${summary}`);
+          button.disabled = false;
+          button.textContent = originalText;
+          button.dataset.analysisStatus = data.analysis_status;
+        }
       } else {
         const retryText = data.retryable ? 'محصول دوباره به صف برگشت' : 'تحلیل محصول با خطا تمام شد';
         setProgress(`${retryText}: ${data.error || 'خطای نامشخص'}`);
+        button.disabled = false;
+        button.textContent = originalText;
       }
     } catch (error) {
       setProgress(`خطای ارتباط با سایت: ${error}`);
-    } finally {
       button.disabled = false;
       button.textContent = originalText;
     }
   }
 
-  async function analyzeNextLoop() {
+  async function pollRunStatus() {
     if (!shouldContinue) return;
     try {
       const runKey = analyzeAllButton.dataset.runKey;
-      const data = await postJson('/api/analysis/process-next/', {run_key: runKey, limit: 1, older_than_minutes: 30, actor: 'ui_run_detail'});
+      const data = await getJson(`/api/runs/${runKey}/analysis-status/`);
       if (!data.ok) {
-        setProgress(`خطا در تحلیل مرحله‌ای: ${data.error || 'خطای نامشخص'}`);
+        setProgress(`خطا در دریافت وضعیت اجرا: ${data.error || 'خطای نامشخص'}`);
         shouldContinue = false;
       } else {
-        const item = (data.items || [])[0];
-        const status = item ? item.analysis_status : 'بدون آیتم';
-        const pending = data.pending_count ?? 0;
-        const failed = data.retry_count ? ` · خطا: <strong>${data.retry_count}</strong>` : '';
-        const accepted = item && item.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${item.accepted_candidates_count}</strong>` : '';
-        setProgress(`پردازش‌شده: <strong>${data.processed_count}</strong> · وضعیت آخر: <strong>${status}</strong>${accepted}${failed} · باقی‌مانده در صف: <strong>${pending}</strong>`);
-        if (data.has_more && shouldContinue) {
-          setTimeout(analyzeNextLoop, 400);
+        const analysis = data.analysis || {};
+        setProgress(`worker در حال پردازش صف است · در انتظار: <strong>${analysis.pending || 0}</strong> · در حال تحلیل: <strong>${analysis.running || 0}</strong> · تحلیل‌شده: <strong>${analysis.analyzed || 0}</strong> · بدون نتیجه: <strong>${analysis.no_match || 0}</strong> · خطا: <strong>${analysis.error || 0}</strong>`);
+        if (!data.is_complete && shouldContinue) {
+          setTimeout(pollRunStatus, 2000);
           return;
         }
       }
@@ -277,7 +326,7 @@
     analyzeAllButton.disabled = false;
     stopButton.disabled = true;
     shouldContinue = false;
-    if (confirm('تحلیل مرحله‌ای تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
+    if (confirm('پردازش صف این اجرا تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
   }
 
   document.querySelectorAll('[data-analyze-snapshot]').forEach((button) => {
@@ -289,8 +338,8 @@
       shouldContinue = true;
       analyzeAllButton.disabled = true;
       stopButton.disabled = false;
-      setProgress('تحلیل همه محصولات باقی‌مانده شروع شد...');
-      analyzeNextLoop();
+      setProgress('نمایش وضعیت صف تحلیل شروع شد. پردازش توسط worker سمت سرور انجام می‌شود.');
+      pollRunStatus();
     });
   }
 

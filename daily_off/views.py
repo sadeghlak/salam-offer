@@ -13,19 +13,16 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .services import (
-    AnalysisAlreadyFinished,
-    AnalysisAlreadyRunning,
     analysis_counts_for_run,
     analysis_payload_for_run,
     claim_pending_analysis,
-    claim_snapshot_for_analysis,
     create_or_update_run,
+    enqueue_snapshot_analysis,
     make_request_id,
     mark_analysis_error,
     mark_product_fetch_error,
     next_missing_product_batch,
     process_analysis_batch,
-    process_analysis_snapshot,
     refresh_run_status,
     requeue_stale_analysis,
     store_analysis_result,
@@ -143,6 +140,29 @@ def run_api_payload(run):
         'error_count': run.error_count,
         'analysis': compact_analysis_summary(analysis_counts_for_run(run)),
     }
+
+
+def snapshot_analysis_payload(snapshot, **extra):
+    payload = {
+        'ok': True,
+        'snapshot_id': snapshot.id,
+        'product_id': snapshot.source_product_id,
+        'analysis_status': snapshot.analysis_status,
+        'status_row': snapshot.status_row,
+        'accepted_candidates_count': snapshot.accepted_candidates_count,
+        'product_url1': snapshot.product_url1,
+        'product_url2': snapshot.product_url2,
+        'product_url3': snapshot.product_url3,
+        'error_message': snapshot.error_message,
+        'is_complete': snapshot.analysis_status in {
+            DailyProductSnapshot.AnalysisStatus.ANALYZED,
+            DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+            DailyProductSnapshot.AnalysisStatus.ERROR,
+        },
+        'run': analysis_payload_for_run(snapshot.run),
+    }
+    payload.update(extra)
+    return payload
 
 
 def filter_analysis_scope(queryset, *, run_key=None, business_date_value=None):
@@ -385,7 +405,7 @@ def api_run_snapshot_analysis(request, snapshot_id):
     force = bool(payload.get('force'))
     stale_minutes = parse_int(payload.get('older_than_minutes'), 30)
     logger.info(
-        'analysis snapshot api requested snapshot_id=%s request_id=%s actor=%s force=%s stale_minutes=%s',
+        'analysis snapshot queue requested snapshot_id=%s request_id=%s actor=%s force=%s stale_minutes=%s',
         snapshot_id,
         request_id,
         actor,
@@ -394,55 +414,31 @@ def api_run_snapshot_analysis(request, snapshot_id):
     )
 
     try:
-        snapshot = claim_snapshot_for_analysis(
+        snapshot, queued, queue_state = enqueue_snapshot_analysis(
             snapshot_id=snapshot_id,
             force=force,
             stale_minutes=stale_minutes,
             request_id=request_id,
             actor=actor,
         )
-    except AnalysisAlreadyFinished as exc:
-        snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
-        logger.info(
-            'analysis snapshot api already finished snapshot_id=%s status=%s request_id=%s',
-            snapshot.id,
-            snapshot.analysis_status,
-            request_id,
-        )
-        return JsonResponse({
-            'ok': True,
-            'already_finished': True,
-            'message': str(exc),
-            'snapshot_id': snapshot.id,
-            'product_id': snapshot.source_product_id,
-            'analysis_status': snapshot.analysis_status,
-            'accepted_candidates_count': snapshot.accepted_candidates_count,
-            'product_url1': snapshot.product_url1,
-            'product_url2': snapshot.product_url2,
-            'product_url3': snapshot.product_url3,
-            'run': analysis_payload_for_run(snapshot.run),
-        })
-    except AnalysisAlreadyRunning as exc:
-        return JsonResponse({'ok': False, 'error': str(exc), 'retryable': True}, status=409)
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
     except ObjectDoesNotExist:
         return JsonResponse({'ok': False, 'error': 'snapshot_not_found'}, status=404)
 
-    outcome = process_analysis_snapshot(snapshot=snapshot, request_id=request_id, actor=actor)
-    stored = outcome['snapshot']
-    return JsonResponse({
-        'ok': outcome['ok'],
-        'request_id': request_id,
-        'snapshot_id': stored.id,
-        'product_id': stored.source_product_id,
-        'analysis_status': stored.analysis_status,
-        'accepted_candidates_count': stored.accepted_candidates_count,
-        'product_url1': stored.product_url1,
-        'product_url2': stored.product_url2,
-        'product_url3': stored.product_url3,
-        'retryable': outcome.get('retryable', False),
-        'error': outcome.get('error', ''),
-        'run': analysis_payload_for_run(stored.run),
-    })
+    status_code = 202 if queued else 200
+    return JsonResponse(snapshot_analysis_payload(
+        snapshot,
+        request_id=request_id,
+        queued=queued,
+        queue_state=queue_state,
+    ), status=status_code)
+
+
+@require_GET
+def api_snapshot_analysis_status(request, snapshot_id):
+    snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
+    return JsonResponse(snapshot_analysis_payload(snapshot))
 
 
 @csrf_exempt
