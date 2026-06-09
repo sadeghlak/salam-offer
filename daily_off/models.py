@@ -96,6 +96,67 @@ class AnalysisStatusLog(models.Model):
         return f'{self.snapshot_id} / {self.event_type} / {self.to_status}'
 
 
+class AnalysisCandidate(models.Model):
+    class Decision(models.TextChoices):
+        ACCEPTED = 'accepted', 'Accepted'
+        REJECTED = 'rejected', 'Rejected'
+
+    snapshot = models.ForeignKey('DailyProductSnapshot', on_delete=models.CASCADE, related_name='analysis_candidates')
+    run = models.ForeignKey(DailyRun, on_delete=models.CASCADE, related_name='analysis_candidates')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='analysis_candidates')
+    request_id = models.CharField(max_length=64, blank=True, db_index=True)
+
+    candidate_id = models.BigIntegerField(db_index=True)
+    candidate_title = models.CharField(max_length=500, blank=True)
+    candidate_price = models.BigIntegerField(default=0)
+    candidate_vendor_identifier = models.CharField(max_length=160, blank=True)
+    candidate_url = models.URLField(max_length=700, blank=True)
+    search_sources = models.JSONField(default=list, blank=True)
+    search_text_query = models.CharField(max_length=500, blank=True)
+
+    similarity_score = models.FloatField(default=0)
+    embedding_score = models.FloatField(default=0)
+    category_score = models.FloatField(default=0)
+    unit_score = models.FloatField(default=0)
+
+    source_unit_type = models.CharField(max_length=128, blank=True)
+    source_unit_group = models.CharField(max_length=32, blank=True)
+    source_quantity_normalized = models.FloatField(null=True, blank=True)
+    source_quantity_basis = models.CharField(max_length=64, blank=True)
+    candidate_unit_type = models.CharField(max_length=128, blank=True)
+    candidate_unit_group = models.CharField(max_length=32, blank=True)
+    candidate_quantity_normalized = models.FloatField(null=True, blank=True)
+    candidate_quantity_basis = models.CharField(max_length=64, blank=True)
+
+    unit_comparable = models.BooleanField(default=False)
+    unit_equivalent = models.BooleanField(default=False)
+    title_measurement_used = models.BooleanField(default=False)
+    title_measurement_confidence = models.CharField(max_length=32, blank=True)
+    source_title_unit = models.CharField(max_length=128, blank=True)
+    source_title_quantity_normalized = models.FloatField(null=True, blank=True)
+    candidate_title_unit = models.CharField(max_length=128, blank=True)
+    candidate_title_quantity_normalized = models.FloatField(null=True, blank=True)
+
+    price_gap = models.BigIntegerField(default=0)
+    price_gap_percent = models.FloatField(default=0)
+    decision = models.CharField(max_length=32, choices=Decision.choices, db_index=True)
+    rejection_reasons = models.JSONField(default=list, blank=True)
+    rejection_reason_text = models.CharField(max_length=500, blank=True)
+    raw_candidate = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['snapshot_id', '-decision', '-similarity_score', 'candidate_price']
+        indexes = [
+            models.Index(fields=['snapshot', 'decision'], name='ac_snapshot_decision_idx'),
+            models.Index(fields=['run', 'decision'], name='ac_run_decision_idx'),
+            models.Index(fields=['candidate_id', 'decision'], name='ac_candidate_decision_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.snapshot_id} / {self.candidate_id} / {self.decision}'
+
+
 class DailyProductSnapshot(models.Model):
     class FetchStatus(models.TextChoices):
         DETAILS_FETCHED = 'details_fetched', 'Details fetched'

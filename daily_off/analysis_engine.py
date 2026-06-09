@@ -12,10 +12,7 @@ from django.conf import settings
 
 from .models import AnalysisStatusLog, DailyProductSnapshot
 from .services import as_float, as_int, clean_string, log_analysis_status, nested_get, product_url
-
-
-COUNT_UNITS = {'عددی', 'عدد', 'بسته', 'جفت'}
-WEIGHT_UNITS = {'گرم', 'کیلوگرم', 'کیلو گرم', 'kg', 'g'}
+from .unit_rules import canonical_unit, compare_measurements, normalize_measurement
 
 
 @dataclass
@@ -46,6 +43,57 @@ class CandidateResult:
     price_gap_percent: float
     search_sources: list
     accepted: bool
+    source_unit_type: str = ''
+    source_unit_group: str = ''
+    source_quantity_normalized: float | None = None
+    source_quantity_basis: str = ''
+    candidate_unit_type: str = ''
+    candidate_unit_group: str = ''
+    candidate_quantity_normalized: float | None = None
+    candidate_quantity_basis: str = ''
+    unit_comparable: bool = False
+    unit_equivalent: bool = False
+    title_measurement_used: bool = False
+    title_measurement_confidence: str = ''
+    rejection_reasons: list = field(default_factory=list)
+    rejection_reason_text: str = ''
+    raw_candidate: dict = field(default_factory=dict)
+
+    def to_candidate_payload(self):
+        return {
+            'candidate_id': self.candidate_id,
+            'candidate_title': self.title,
+            'candidate_price': self.price,
+            'candidate_vendor_identifier': self.vendor_identifier,
+            'candidate_url': self.url,
+            'search_sources': self.search_sources,
+            'similarity_score': self.similarity_score,
+            'embedding_score': self.embedding_score,
+            'category_score': self.category_score,
+            'unit_score': self.weight_score,
+            'source_unit_type': self.source_unit_type,
+            'source_unit_group': self.source_unit_group,
+            'source_quantity_normalized': self.source_quantity_normalized,
+            'source_quantity_basis': self.source_quantity_basis,
+            'candidate_unit_type': self.candidate_unit_type,
+            'candidate_unit_group': self.candidate_unit_group,
+            'candidate_quantity_normalized': self.candidate_quantity_normalized,
+            'candidate_quantity_basis': self.candidate_quantity_basis,
+            'unit_comparable': self.unit_comparable,
+            'unit_equivalent': self.unit_equivalent,
+            'title_measurement_used': self.title_measurement_used,
+            'title_measurement_confidence': self.title_measurement_confidence,
+            'source_title_unit': self.raw_candidate.get('source_title_unit', ''),
+            'source_title_quantity_normalized': self.raw_candidate.get('source_title_quantity_normalized'),
+            'candidate_title_unit': self.raw_candidate.get('candidate_title_unit', ''),
+            'candidate_title_quantity_normalized': self.raw_candidate.get('candidate_title_quantity_normalized'),
+            'price_gap': self.price_gap,
+            'price_gap_percent': self.price_gap_percent,
+            'decision': 'accepted' if self.accepted else 'rejected',
+            'rejection_reasons': self.rejection_reasons,
+            'rejection_reason_text': self.rejection_reason_text,
+            'raw_candidate': self.raw_candidate,
+        }
 
 
 @dataclass
@@ -77,6 +125,7 @@ class AnalysisResult:
             'candidates_seen_count': self.candidates_seen_count,
             'candidates_deduped_count': self.candidates_deduped_count,
             'candidate_details_fetched_count': self.candidate_details_fetched_count,
+            'analysis_candidates': [row.to_candidate_payload() for row in [*self.accepted_candidates, *self.rejected_candidates]],
         }
 
 
@@ -117,7 +166,7 @@ def cosine_token_similarity(left, right):
 
 
 def normalize_unit(value):
-    return normalize_text(value)
+    return canonical_unit(value) or normalize_text(value)
 
 
 def source_dict(snapshot):
@@ -154,24 +203,19 @@ def category_score(snapshot, candidate):
 
 
 def exact_weight_match(snapshot, candidate):
-    source_unit = normalize_unit(snapshot.unit_type)
-    candidate_unit = normalize_unit(candidate.get('candidate_unit_type'))
-    if not source_unit or not candidate_unit or source_unit != candidate_unit:
-        return False
-
-    if source_unit in COUNT_UNITS:
-        source_qty = as_float(snapshot.unit_quantity)
-        candidate_qty = as_float(candidate.get('candidate_unit_quantity'))
-        return bool(source_qty and candidate_qty and source_qty == candidate_qty)
-
-    if source_unit in WEIGHT_UNITS:
-        source_weight = as_float(snapshot.net_weight)
-        candidate_weight = as_float(candidate.get('candidate_net_weight'))
-        return bool(source_weight and candidate_weight and source_weight == candidate_weight)
-
-    source_qty = as_float(snapshot.unit_quantity or snapshot.net_weight)
-    candidate_qty = as_float(candidate.get('candidate_unit_quantity') or candidate.get('candidate_net_weight'))
-    return bool(source_qty and candidate_qty and source_qty == candidate_qty)
+    source_measurement = normalize_measurement(
+        unit_type=snapshot.unit_type,
+        unit_quantity=snapshot.unit_quantity,
+        net_weight=snapshot.net_weight,
+        title=snapshot.title,
+    )
+    candidate_measurement = normalize_measurement(
+        unit_type=candidate.get('candidate_unit_type'),
+        unit_quantity=candidate.get('candidate_unit_quantity'),
+        net_weight=candidate.get('candidate_net_weight'),
+        title=candidate.get('candidate_title'),
+    )
+    return compare_measurements(source_measurement, candidate_measurement).equivalent
 
 
 def http_json_get(url, *, timeout):
@@ -328,7 +372,7 @@ def normalize_candidate_detail(raw, fallback=None):
     fallback = fallback or {}
     unit_type = nested_get(raw, 'unit_type.name') or ''
     normalized_unit = normalize_unit(unit_type)
-    if normalized_unit in COUNT_UNITS:
+    if normalized_unit == 'عددی':
         candidate_weight_text = ' '.join([clean_string(raw.get('unit_quantity')), unit_type]).strip()
     else:
         candidate_weight_text = ' '.join([clean_string(raw.get('net_weight_decimal') or raw.get('net_weight')), unit_type]).strip()
@@ -385,17 +429,49 @@ def score_candidate(*, snapshot, candidate, config):
     ])
     embedding_score = cosine_token_similarity(source_text, candidate_text)
     cat_score = category_score(snapshot, candidate)
-    is_exact = exact_weight_match(snapshot, candidate)
-    weight_score = 1 if is_exact else 0
+    source_measurement = normalize_measurement(
+        unit_type=snapshot.unit_type,
+        unit_quantity=snapshot.unit_quantity,
+        net_weight=snapshot.net_weight,
+        title=snapshot.title,
+    )
+    candidate_measurement = normalize_measurement(
+        unit_type=candidate.get('candidate_unit_type'),
+        unit_quantity=candidate.get('candidate_unit_quantity'),
+        net_weight=candidate.get('candidate_net_weight'),
+        title=candidate.get('candidate_title'),
+    )
+    unit_comparison = compare_measurements(source_measurement, candidate_measurement)
+    is_exact = unit_comparison.equivalent
+    weight_score = unit_comparison.score
     weights = config.score_weights
     final_score = max(0, min(1, embedding_score * weights['embedding'] + cat_score * weights['category'] + weight_score * weights['weight']))
     candidate_price = as_int(candidate.get('candidate_price'))
     price_gap = snapshot.price - candidate_price
     price_gap_percent = (price_gap / snapshot.price * 100) if snapshot.price else 0
     is_cheaper = candidate_price > 0 and price_gap >= config.min_cheaper_delta
-    accepted = is_cheaper and final_score >= config.min_similarity and is_exact
+    rejection_reasons = []
+    if candidate_price <= 0:
+        rejection_reasons.append('candidate_price_missing')
+    elif not is_cheaper:
+        rejection_reasons.append('not_cheaper')
+    if final_score < config.min_similarity:
+        rejection_reasons.append('similarity_below_threshold')
+    rejection_reasons.extend(unit_comparison.reasons)
+    accepted = is_cheaper and final_score >= config.min_similarity and unit_comparison.comparable and unit_comparison.equivalent
+    if accepted:
+        rejection_reasons = []
     candidate_id = as_int(candidate.get('candidate_id'))
     vendor_identifier = clean_string(candidate.get('candidate_vendor_identifier'))
+    reason_labels = {
+        'candidate_price_missing': 'قیمت کاندیدا موجود نیست',
+        'not_cheaper': 'کاندیدا ارزان‌تر از محصول اصلی نیست',
+        'similarity_below_threshold': 'امتیاز شباهت پایین‌تر از حد مجاز است',
+        'unit_missing': 'واحد یا مقدار قابل مقایسه موجود نیست',
+        'unit_group_mismatch': 'گروه واحد اندازه‌گیری متفاوت است',
+        'unit_quantity_mismatch': 'مقدار نرمال‌شده معادل نیست',
+    }
+    rejection_reason_text = '؛ '.join([reason_labels.get(reason, reason) for reason in rejection_reasons])
 
     return CandidateResult(
         candidate_id=candidate_id,
@@ -412,6 +488,27 @@ def score_candidate(*, snapshot, candidate, config):
         price_gap_percent=round(price_gap_percent, 2),
         search_sources=candidate.get('search_sources') or [],
         accepted=accepted,
+        source_unit_type=source_measurement.canonical_unit,
+        source_unit_group=source_measurement.group,
+        source_quantity_normalized=source_measurement.normalized_quantity,
+        source_quantity_basis=source_measurement.basis,
+        candidate_unit_type=candidate_measurement.canonical_unit,
+        candidate_unit_group=candidate_measurement.group,
+        candidate_quantity_normalized=candidate_measurement.normalized_quantity,
+        candidate_quantity_basis=candidate_measurement.basis,
+        unit_comparable=unit_comparison.comparable,
+        unit_equivalent=unit_comparison.equivalent,
+        title_measurement_used=unit_comparison.title_measurement_used,
+        title_measurement_confidence=unit_comparison.title_measurement_confidence,
+        rejection_reasons=rejection_reasons,
+        rejection_reason_text=rejection_reason_text,
+        raw_candidate={
+            **candidate,
+            'source_title_unit': source_measurement.title_unit,
+            'source_title_quantity_normalized': source_measurement.title_normalized_quantity,
+            'candidate_title_unit': candidate_measurement.title_unit,
+            'candidate_title_quantity_normalized': candidate_measurement.title_normalized_quantity,
+        },
     )
 
 
@@ -433,7 +530,7 @@ def aggregate_candidate_results(*, snapshot, scored, candidates_seen_count, cand
         candidates_deduped_count=candidates_deduped_count,
         candidate_details_fetched_count=detail_count,
         accepted_candidates=accepted,
-        rejected_candidates=[row for row in scored if not row.accepted][:20],
+        rejected_candidates=[row for row in scored if not row.accepted],
     )
 
 
@@ -451,6 +548,12 @@ def candidate_log_rows(rows):
             'price_gap': row.price_gap,
             'accepted': row.accepted,
             'search_sources': row.search_sources,
+            'unit_comparable': row.unit_comparable,
+            'unit_equivalent': row.unit_equivalent,
+            'source_quantity_normalized': row.source_quantity_normalized,
+            'candidate_quantity_normalized': row.candidate_quantity_normalized,
+            'rejection_reasons': row.rejection_reasons,
+            'rejection_reason_text': row.rejection_reason_text,
         }
         for row in rows
     ]

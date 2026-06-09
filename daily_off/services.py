@@ -7,7 +7,7 @@ from django.db import connection, transaction
 from django.db.models import Count
 from django.utils import timezone
 
-from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
+from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 
 
 logger = logging.getLogger(__name__)
@@ -676,6 +676,52 @@ def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, re
         'error_message',
         'updated_at',
     ])
+    candidate_rows = data.get('analysis_candidates') or []
+    AnalysisCandidate.objects.filter(snapshot=snapshot).delete()
+    AnalysisCandidate.objects.bulk_create([
+        AnalysisCandidate(
+            snapshot=snapshot,
+            run=snapshot.run,
+            product=snapshot.product,
+            request_id=clean_string(data.get('request_id')),
+            candidate_id=as_int(row.get('candidate_id')),
+            candidate_title=clean_string(row.get('candidate_title'))[:500],
+            candidate_price=as_int(row.get('candidate_price')),
+            candidate_vendor_identifier=clean_string(row.get('candidate_vendor_identifier')),
+            candidate_url=clean_string(row.get('candidate_url')),
+            search_sources=row.get('search_sources') or [],
+            search_text_query=snapshot.title[:500],
+            similarity_score=as_float(row.get('similarity_score')),
+            embedding_score=as_float(row.get('embedding_score')),
+            category_score=as_float(row.get('category_score')),
+            unit_score=as_float(row.get('unit_score')),
+            source_unit_type=clean_string(row.get('source_unit_type')),
+            source_unit_group=clean_string(row.get('source_unit_group')),
+            source_quantity_normalized=row.get('source_quantity_normalized'),
+            source_quantity_basis=clean_string(row.get('source_quantity_basis')),
+            candidate_unit_type=clean_string(row.get('candidate_unit_type')),
+            candidate_unit_group=clean_string(row.get('candidate_unit_group')),
+            candidate_quantity_normalized=row.get('candidate_quantity_normalized'),
+            candidate_quantity_basis=clean_string(row.get('candidate_quantity_basis')),
+            unit_comparable=bool(row.get('unit_comparable')),
+            unit_equivalent=bool(row.get('unit_equivalent')),
+            title_measurement_used=bool(row.get('title_measurement_used')),
+            title_measurement_confidence=clean_string(row.get('title_measurement_confidence')),
+            source_title_unit=clean_string(row.get('source_title_unit')),
+            source_title_quantity_normalized=row.get('source_title_quantity_normalized'),
+            candidate_title_unit=clean_string(row.get('candidate_title_unit')),
+            candidate_title_quantity_normalized=row.get('candidate_title_quantity_normalized'),
+            price_gap=as_int(row.get('price_gap')),
+            price_gap_percent=as_float(row.get('price_gap_percent')),
+            decision=row.get('decision') if row.get('decision') in dict(AnalysisCandidate.Decision.choices) else AnalysisCandidate.Decision.REJECTED,
+            rejection_reasons=row.get('rejection_reasons') or [],
+            rejection_reason_text=clean_string(row.get('rejection_reason_text'))[:500],
+            raw_candidate=row.get('raw_candidate') or {},
+        )
+        for row in candidate_rows
+        if as_int(row.get('candidate_id'))
+    ])
+
     log_analysis_status(
         snapshot=snapshot,
         event_type=AnalysisStatusLog.EventType.RESULT_STORED,
@@ -688,6 +734,7 @@ def store_analysis_result(*, snapshot_id=None, run_key=None, product_id=None, re
             'product_url2': snapshot.product_url2,
             'product_url3': snapshot.product_url3,
             'accepted_candidates_count': snapshot.accepted_candidates_count,
+            'analysis_candidates_count': len(candidate_rows),
         },
         request_id=clean_string(data.get('request_id')),
         actor=clean_string(data.get('actor')) or 'django_api',

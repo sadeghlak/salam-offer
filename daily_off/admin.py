@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
+from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 
 
 @admin.register(DailyRun)
@@ -25,6 +25,14 @@ class DailyProductSnapshotAdmin(admin.ModelAdmin):
     list_filter = ('business_date', 'fetch_status', 'analysis_status')
     search_fields = ('source_product_id', 'title', 'vendor_name', 'vendor_identifier')
     readonly_fields = ('captured_at', 'created_at', 'updated_at')
+
+
+@admin.register(AnalysisCandidate)
+class AnalysisCandidateAdmin(admin.ModelAdmin):
+    list_display = ('id', 'snapshot', 'candidate_id', 'decision', 'candidate_price', 'similarity_score', 'unit_equivalent', 'created_at')
+    list_filter = ('decision', 'unit_comparable', 'unit_equivalent', 'title_measurement_used', 'created_at')
+    search_fields = ('snapshot__source_product_id', 'snapshot__title', 'candidate_id', 'candidate_title', 'rejection_reason_text')
+    readonly_fields = ('snapshot', 'run', 'product', 'request_id', 'created_at')
 
 
 @admin.register(AnalysisStatusLog)

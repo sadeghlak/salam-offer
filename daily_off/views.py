@@ -1,17 +1,18 @@
+import csv
 import json
 import logging
 from datetime import date
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Count, Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
+from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .services import (
     analysis_counts_for_run,
     analysis_payload_for_run,
@@ -547,6 +548,54 @@ def api_finish_run(request):
         'error_count': run.error_count,
         'analysis': compact_analysis_summary(analysis_counts_for_run(run)),
     })
+
+
+def csv_value(value):
+    if value is None:
+        return ''
+    if isinstance(value, (list, tuple)):
+        return ' | '.join([str(item) for item in value])
+    return value
+
+
+def export_run_analysis_candidates_csv(request, run_key):
+    run = get_object_or_404(DailyRun, run_key=run_key)
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="salam-offer-analysis-{run.business_date}-{run.run_key}.csv"'
+    response.write('﻿')
+    writer = csv.writer(response)
+    headers = [
+        'run_key', 'business_date', 'snapshot_id', 'source_product_id', 'source_title', 'source_price',
+        'source_vendor', 'source_category', 'source_url', 'source_unit_type', 'source_unit_group',
+        'source_quantity_normalized', 'source_quantity_basis', 'candidate_id', 'candidate_title',
+        'candidate_url', 'candidate_price', 'candidate_vendor_identifier', 'search_sources',
+        'similarity_score', 'embedding_score', 'category_score', 'unit_score', 'candidate_unit_type',
+        'candidate_unit_group', 'candidate_quantity_normalized', 'candidate_quantity_basis',
+        'unit_comparable', 'unit_equivalent', 'title_measurement_used', 'title_measurement_confidence',
+        'source_title_unit', 'source_title_quantity_normalized', 'candidate_title_unit',
+        'candidate_title_quantity_normalized', 'price_gap', 'price_gap_percent', 'decision',
+        'rejection_reasons', 'rejection_reason_text',
+        'human_label', 'human_is_correct', 'human_wrong_reason', 'human_expected_candidate_url',
+        'human_expected_candidate_id', 'human_notes',
+    ]
+    writer.writerow(headers)
+    candidates = AnalysisCandidate.objects.filter(run=run).select_related('snapshot', 'product').order_by('snapshot_id', '-decision', '-similarity_score', 'candidate_price')
+    for row in candidates:
+        snapshot = row.snapshot
+        writer.writerow([
+            run.run_key, run.business_date, snapshot.id, snapshot.source_product_id, snapshot.title, snapshot.price,
+            snapshot.vendor_name, snapshot.category_title, snapshot.product.latest_product_url, row.source_unit_type,
+            row.source_unit_group, row.source_quantity_normalized, row.source_quantity_basis, row.candidate_id,
+            row.candidate_title, row.candidate_url, row.candidate_price, row.candidate_vendor_identifier,
+            csv_value(row.search_sources), row.similarity_score, row.embedding_score, row.category_score,
+            row.unit_score, row.candidate_unit_type, row.candidate_unit_group, row.candidate_quantity_normalized,
+            row.candidate_quantity_basis, row.unit_comparable, row.unit_equivalent, row.title_measurement_used,
+            row.title_measurement_confidence, row.source_title_unit, row.source_title_quantity_normalized,
+            row.candidate_title_unit, row.candidate_title_quantity_normalized, row.price_gap,
+            row.price_gap_percent, row.decision, csv_value(row.rejection_reasons),
+            row.rejection_reason_text, '', '', '', '', '', '',
+        ])
+    return response
 
 
 def dashboard_home(request):

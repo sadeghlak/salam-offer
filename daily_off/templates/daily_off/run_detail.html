@@ -20,6 +20,7 @@
         <div class="analysis-control">
             <button class="btn" type="button" data-analyze-all data-run-key="{{ run.run_key }}">تحلیل همه محصولات باقی‌مانده</button>
             <button class="btn secondary" type="button" data-stop-analysis disabled>توقف</button>
+            <a class="btn secondary" href="{% url 'daily_off:export_run_analysis_candidates_csv' run.run_key %}">خروجی اکسل گزارش تحلیل</a>
         </div>
         <div class="analysis-progress" data-analysis-progress>آماده تحلیل محصولات در صف.</div>
         <form method="post" action="{% url 'daily_off:delete_run' run.run_key %}" onsubmit="return confirm('کل داده‌های این روز حذف شود؟');">
