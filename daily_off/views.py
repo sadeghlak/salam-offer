@@ -2,6 +2,7 @@ import csv
 import json
 import logging
 from datetime import date
+from html import escape
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Count, Q
@@ -560,11 +561,9 @@ def csv_value(value):
 
 def export_run_analysis_candidates_csv(request, run_key):
     run = get_object_or_404(DailyRun, run_key=run_key)
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="salam-offer-dataset-{run.business_date}-{run.run_key}.csv"'
-    response.write('﻿sep=;\r\n')
-    writer = csv.writer(response, delimiter=';')
-    writer.writerow([
+    response = HttpResponse(content_type='application/vnd.ms-excel; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="salam-offer-dataset-{run.business_date}-{run.run_key}.xls"'
+    headers = [
         'اسم محصول اصلی',
         'محصول مشابه ۱',
         'محصول مشابه ۲',
@@ -578,7 +577,8 @@ def export_run_analysis_candidates_csv(request, run_key):
         'دلیل وضعیت محصول مشابه ۳',
         'محصول مشابه صحیح دیگری که جا افتاده',
         'توضیحات کلی شما',
-    ])
+    ]
+    rows = []
 
     accepted_by_snapshot = {}
     accepted_candidates = (
@@ -606,7 +606,7 @@ def export_run_analysis_candidates_csv(request, run_key):
             similar_names = [url for url in [snapshot.product_url1, snapshot.product_url2, snapshot.product_url3] if url]
         similar_names = similar_names[:3] + [''] * (3 - len(similar_names))
         no_match = 'بله' if not any(similar_names) or snapshot.analysis_status == DailyProductSnapshot.AnalysisStatus.NO_MATCH else ''
-        writer.writerow([
+        rows.append([
             snapshot.title,
             similar_names[0],
             similar_names[1],
@@ -621,6 +621,20 @@ def export_run_analysis_candidates_csv(request, run_key):
             '',
             '',
         ])
+
+    response.write('﻿')
+    response.write('<html><head><meta charset="utf-8"></head><body>')
+    response.write('<table border="1" dir="rtl" style="font-family:Tahoma; border-collapse:collapse;">')
+    response.write('<thead><tr>')
+    for header in headers:
+        response.write(f'<th>{escape(header)}</th>')
+    response.write('</tr></thead><tbody>')
+    for row in rows:
+        response.write('<tr>')
+        for value in row:
+            response.write(f'<td>{escape(str(value or ""))}</td>')
+        response.write('</tr>')
+    response.write('</tbody></table></body></html>')
     return response
 
 
