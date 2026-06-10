@@ -654,12 +654,13 @@ def dashboard_totals():
 
 
 def build_run_context(request, run):
-    base_snapshots = run.snapshots.select_related('product').order_by('id')
+    base_snapshots = run.snapshots.select_related('product')
 
     category = request.GET.get('category') or ''
     analysis_status = request.GET.get('analysis_status') or ''
     fetch_status = request.GET.get('fetch_status') or ''
     result_state = request.GET.get('result_state') or ''
+    sort = request.GET.get('sort') or 'captured_at_desc'
     q = (request.GET.get('q') or '').strip()
 
     category_options = list(
@@ -705,6 +706,33 @@ def build_run_context(request, run):
             search_filter |= Q(source_product_id=int(q)) | Q(id=int(q))
         snapshots = snapshots.filter(search_filter)
 
+    shown_count = snapshots.count()
+    sort_options = [
+        ('captured_at_desc', 'جدیدترین'),
+        ('captured_at_asc', 'قدیمی‌ترین'),
+        ('discount_desc', 'بیشترین تخفیف'),
+        ('price_asc', 'ارزان‌ترین دیلی آف'),
+        ('price_desc', 'گران‌ترین دیلی آف'),
+        ('status', 'وضعیت'),
+        ('vendor', 'فروشنده'),
+    ]
+    sort_map = {
+        'captured_at_desc': '-captured_at',
+        'captured_at_asc': 'captured_at',
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'status': 'analysis_status',
+        'vendor': 'vendor_name',
+    }
+    snapshots = list(snapshots.order_by(sort_map.get(sort, '-captured_at')))
+    for item in snapshots:
+        if item.primary_price and item.price and item.primary_price > item.price:
+            item.discount_percent = round(((item.primary_price - item.price) / item.primary_price) * 100)
+        else:
+            item.discount_percent = 0
+    if sort == 'discount_desc':
+        snapshots.sort(key=lambda item: item.discount_percent, reverse=True)
+
     return {
         'run': run,
         'selected_run': run,
@@ -716,9 +744,11 @@ def build_run_context(request, run):
         'selected_analysis_status': analysis_status,
         'selected_fetch_status': fetch_status,
         'selected_result_state': result_state,
+        'selected_sort': sort,
+        'sort_options': sort_options,
         'q': q,
         'run_summary': run_summary,
-        'shown_count': snapshots.count(),
+        'shown_count': shown_count,
     }
 
 
