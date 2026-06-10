@@ -561,39 +561,65 @@ def csv_value(value):
 def export_run_analysis_candidates_csv(request, run_key):
     run = get_object_or_404(DailyRun, run_key=run_key)
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="salam-offer-analysis-{run.business_date}-{run.run_key}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="salam-offer-dataset-{run.business_date}-{run.run_key}.csv"'
     response.write('﻿')
     writer = csv.writer(response)
-    headers = [
-        'run_key', 'business_date', 'snapshot_id', 'source_product_id', 'source_title', 'source_price',
-        'source_vendor', 'source_category', 'source_url', 'source_unit_type', 'source_unit_group',
-        'source_quantity_normalized', 'source_quantity_basis', 'candidate_id', 'candidate_title',
-        'candidate_url', 'candidate_price', 'candidate_vendor_identifier', 'search_sources',
-        'similarity_score', 'embedding_score', 'category_score', 'unit_score', 'candidate_unit_type',
-        'candidate_unit_group', 'candidate_quantity_normalized', 'candidate_quantity_basis',
-        'unit_comparable', 'unit_equivalent', 'title_measurement_used', 'title_measurement_confidence',
-        'source_title_unit', 'source_title_quantity_normalized', 'candidate_title_unit',
-        'candidate_title_quantity_normalized', 'price_gap', 'price_gap_percent', 'decision',
-        'rejection_reasons', 'rejection_reason_text',
-        'human_label', 'human_is_correct', 'human_wrong_reason', 'human_expected_candidate_url',
-        'human_expected_candidate_id', 'human_notes',
-    ]
-    writer.writerow(headers)
-    candidates = AnalysisCandidate.objects.filter(run=run).select_related('snapshot', 'product').order_by('snapshot_id', '-decision', '-similarity_score', 'candidate_price')
-    for row in candidates:
-        snapshot = row.snapshot
+    writer.writerow([
+        'اسم محصول اصلی',
+        'اسم محصول مشابه ۱',
+        'نظر شما درباره مشابه ۱',
+        'دلیل نظر درباره مشابه ۱',
+        'اسم محصول مشابه ۲',
+        'نظر شما درباره مشابه ۲',
+        'دلیل نظر درباره مشابه ۲',
+        'اسم محصول مشابه ۳',
+        'نظر شما درباره مشابه ۳',
+        'دلیل نظر درباره مشابه ۳',
+        'محصول مشابه پیدا نشد؟',
+        'اگر محصول مشابه صحیح دیگری مدنظر است، نام یا لینک آن را بنویسید',
+        'توضیحات کلی شما',
+    ])
+
+    accepted_by_snapshot = {}
+    accepted_candidates = (
+        AnalysisCandidate.objects
+        .filter(run=run, decision=AnalysisCandidate.Decision.ACCEPTED)
+        .only('snapshot_id', 'candidate_title', 'similarity_score', 'candidate_price')
+        .order_by('snapshot_id', '-similarity_score', 'candidate_price')
+    )
+    for candidate in accepted_candidates:
+        bucket = accepted_by_snapshot.setdefault(candidate.snapshot_id, [])
+        if len(bucket) < 3:
+            bucket.append(candidate.candidate_title)
+
+    snapshots = run.snapshots.only(
+        'id',
+        'title',
+        'analysis_status',
+        'product_url1',
+        'product_url2',
+        'product_url3',
+    ).order_by('id')
+    for snapshot in snapshots:
+        similar_names = accepted_by_snapshot.get(snapshot.id, [])
+        if not similar_names:
+            similar_names = [url for url in [snapshot.product_url1, snapshot.product_url2, snapshot.product_url3] if url]
+        similar_names = similar_names[:3] + [''] * (3 - len(similar_names))
+        no_match = 'بله' if not any(similar_names) or snapshot.analysis_status == DailyProductSnapshot.AnalysisStatus.NO_MATCH else ''
         writer.writerow([
-            run.run_key, run.business_date, snapshot.id, snapshot.source_product_id, snapshot.title, snapshot.price,
-            snapshot.vendor_name, snapshot.category_title, snapshot.product.latest_product_url, row.source_unit_type,
-            row.source_unit_group, row.source_quantity_normalized, row.source_quantity_basis, row.candidate_id,
-            row.candidate_title, row.candidate_url, row.candidate_price, row.candidate_vendor_identifier,
-            csv_value(row.search_sources), row.similarity_score, row.embedding_score, row.category_score,
-            row.unit_score, row.candidate_unit_type, row.candidate_unit_group, row.candidate_quantity_normalized,
-            row.candidate_quantity_basis, row.unit_comparable, row.unit_equivalent, row.title_measurement_used,
-            row.title_measurement_confidence, row.source_title_unit, row.source_title_quantity_normalized,
-            row.candidate_title_unit, row.candidate_title_quantity_normalized, row.price_gap,
-            row.price_gap_percent, row.decision, csv_value(row.rejection_reasons),
-            row.rejection_reason_text, '', '', '', '', '', '',
+            snapshot.title,
+            similar_names[0],
+            '',
+            '',
+            similar_names[1],
+            '',
+            '',
+            similar_names[2],
+            '',
+            '',
+            no_match,
+            '',
+            '',
         ])
     return response
 
