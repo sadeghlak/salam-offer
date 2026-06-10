@@ -315,6 +315,9 @@ python manage.py process_analysis_queue --loop --sleep 2 --limit 1
 3. score نهایی حداقل برابر `CHEAPER_ANALYSIS_MIN_SIMILARITY` باشد.
 4. واحد source و candidate در یک گروه باشند.
 5. مقدار نرمال‌شده source و candidate با tolerance یک درصد معادل باشد.
+6. هیچ semantic blocker با اطمینان بالا بین source و candidate وجود نداشته باشد.
+
+لایه semantic blocker از annotationهای دیتاست دستی ساخته شده و بدون مدل جدید، تفاوت‌های صریح title/attribute را reject می‌کند: subtype عسل و claimهای دیابتی/ساکاروز، نوع ماهی، ابعاد، ظرفیت، وات، مدل، برند، عمده/بسته چندتایی، تعداد خانه، accessory در برابر محصول اصلی، ترکیب آجیل و mismatch صریح جنس/کیفیت. ارسال رایگان و رضایت مشتری فعلاً future work هستند و در scoring دخالت داده نمی‌شوند.
 
 اگر هر شرط برقرار نباشد، candidate rejected می‌شود و دلیل reject در `AnalysisCandidate.rejection_reasons` و `rejection_reason_text` ذخیره می‌شود.
 
@@ -326,6 +329,20 @@ python manage.py process_analysis_queue --loop --sleep 2 --limit 1
 - `unit_missing`
 - `unit_group_mismatch`
 - `unit_quantity_mismatch`
+- `semantic_brand_mismatch`
+- `semantic_model_mismatch`
+- `semantic_dimension_mismatch`
+- `semantic_capacity_mismatch`
+- `semantic_wattage_mismatch`
+- `semantic_honey_subtype_mismatch`
+- `semantic_honey_claim_missing`
+- `semantic_fish_type_mismatch`
+- `semantic_wholesale_mismatch`
+- `semantic_package_count_mismatch`
+- `semantic_compartment_count_mismatch`
+- `semantic_accessory_main_mismatch`
+- `semantic_nut_mix_mismatch`
+- `semantic_material_mismatch`
 
 ## 6. گزارش و دیتاست قابل اصلاح
 

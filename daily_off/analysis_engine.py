@@ -12,6 +12,7 @@ from django.conf import settings
 
 from .models import AnalysisStatusLog, DailyProductSnapshot
 from .services import as_float, as_int, clean_string, log_analysis_status, nested_get, product_url
+from .semantic_rules import compare_semantic_cues
 from .unit_rules import canonical_unit, compare_measurements, normalize_measurement
 
 
@@ -442,6 +443,19 @@ def score_candidate(*, snapshot, candidate, config):
         title=candidate.get('candidate_title'),
     )
     unit_comparison = compare_measurements(source_measurement, candidate_measurement)
+    semantic_comparison = compare_semantic_cues(
+        source_title=snapshot.title,
+        source_text=' | '.join([
+            clean_string(snapshot.title), clean_string(snapshot.category_title), clean_string(snapshot.category_parent_title),
+            clean_string(snapshot.attributes_text), clean_string(snapshot.description), clean_string(snapshot.summary),
+        ]),
+        candidate_title=candidate.get('candidate_title'),
+        candidate_text=' | '.join([
+            clean_string(candidate.get('candidate_title')), clean_string(candidate.get('candidate_category_title')),
+            clean_string(candidate.get('candidate_category_parent_title')), clean_string(candidate.get('candidate_attributes_text')),
+            clean_string(candidate.get('candidate_description')), clean_string(candidate.get('candidate_summary')),
+        ]),
+    )
     is_exact = unit_comparison.equivalent
     weight_score = unit_comparison.score
     weights = config.score_weights
@@ -458,7 +472,14 @@ def score_candidate(*, snapshot, candidate, config):
     if final_score < config.min_similarity:
         rejection_reasons.append('similarity_below_threshold')
     rejection_reasons.extend(unit_comparison.reasons)
-    accepted = is_cheaper and final_score >= config.min_similarity and unit_comparison.comparable and unit_comparison.equivalent
+    rejection_reasons.extend(semantic_comparison.blocker_reasons)
+    accepted = (
+        is_cheaper
+        and final_score >= config.min_similarity
+        and unit_comparison.comparable
+        and unit_comparison.equivalent
+        and not semantic_comparison.blocker_reasons
+    )
     if accepted:
         rejection_reasons = []
     candidate_id = as_int(candidate.get('candidate_id'))
@@ -470,6 +491,20 @@ def score_candidate(*, snapshot, candidate, config):
         'unit_missing': 'واحد یا مقدار قابل مقایسه موجود نیست',
         'unit_group_mismatch': 'گروه واحد اندازه‌گیری متفاوت است',
         'unit_quantity_mismatch': 'مقدار نرمال‌شده معادل نیست',
+        'semantic_brand_mismatch': 'برند محصول با کاندیدا متفاوت است',
+        'semantic_model_mismatch': 'مدل یا کد مدل محصول متفاوت است',
+        'semantic_dimension_mismatch': 'ابعاد ذکرشده در عنوان متفاوت است',
+        'semantic_capacity_mismatch': 'ظرفیت ذکرشده در عنوان متفاوت است',
+        'semantic_wattage_mismatch': 'توان/وات ذکرشده در عنوان متفاوت است',
+        'semantic_honey_subtype_mismatch': 'نوع عسل با محصول اصلی متفاوت است',
+        'semantic_honey_claim_missing': 'ویژگی حساس عسل مثل دیابتی یا ساکاروز با محصول اصلی هم‌خوان نیست',
+        'semantic_fish_type_mismatch': 'نوع ماهی با محصول اصلی متفاوت است',
+        'semantic_wholesale_mismatch': 'عمده یا تکی بودن محصول متفاوت است',
+        'semantic_package_count_mismatch': 'تعداد بسته یا پک محصول متفاوت است',
+        'semantic_compartment_count_mismatch': 'تعداد خانه/بخش محصول متفاوت است',
+        'semantic_accessory_main_mismatch': 'محصول اصلی با لوازم جانبی آن اشتباه گرفته شده است',
+        'semantic_nut_mix_mismatch': 'ترکیب آجیل یا نوع مغزها متفاوت است',
+        'semantic_material_mismatch': 'جنس یا کیفیت ذکرشده برای محصول متفاوت است',
     }
     rejection_reason_text = '؛ '.join([reason_labels.get(reason, reason) for reason in rejection_reasons])
 
@@ -508,6 +543,7 @@ def score_candidate(*, snapshot, candidate, config):
             'source_title_quantity_normalized': source_measurement.title_normalized_quantity,
             'candidate_title_unit': candidate_measurement.title_unit,
             'candidate_title_quantity_normalized': candidate_measurement.title_normalized_quantity,
+            'semantic_cues': semantic_comparison.details,
         },
     )
 
