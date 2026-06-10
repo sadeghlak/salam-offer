@@ -560,10 +560,10 @@ def csv_value(value):
 
 def export_run_analysis_candidates_csv(request, run_key):
     run = get_object_or_404(DailyRun, run_key=run_key)
-    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="salam-offer-dataset-{run.business_date}-{run.run_key}.csv"'
-    response.write('﻿')
-    writer = csv.writer(response)
+    response.write('﻿sep=;\r\n')
+    writer = csv.writer(response, delimiter=';')
     writer.writerow([
         'اسم محصول اصلی',
         'اسم محصول مشابه ۱',
