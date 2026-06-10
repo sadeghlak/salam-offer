@@ -165,25 +165,6 @@
         </table>
     </section>
     </section>
-    <aside class="ops-support-panel" aria-label="Product operations context">
-        <article class="support-card">
-            <div class="support-kicker">Run Focus</div>
-            <h2>{{ run.business_date|jalali_date }}</h2>
-            <div class="support-list">
-                <div class="support-list-row"><span>نمایش فعلی</span><strong>{{ shown_count }}</strong></div>
-                <div class="support-list-row"><span>کل محصولات</span><strong>{{ run_summary.total }}</strong></div>
-                <div class="support-list-row"><span>خطای دریافت</span><strong>{{ run_summary.fetch_errors }}</strong></div>
-                <div class="support-list-row"><span>Run Key</span><strong>{{ run.run_key|truncatechars:8 }}</strong></div>
-            </div>
-        </article>
-        <article class="support-card">
-            <div class="support-kicker">Outputs</div>
-            <div class="support-list">
-                <a class="support-link" href="{% url 'daily_off:export_run_analysis_candidates_csv' run.run_key %}"><span>گزارش بررسی مشابه‌ها</span><span>↗</span></a>
-                <p class="muted">خروجی برای بازبینی انسانی محصولات مشابه و اصلاح دیتاست دقت موتور.</p>
-            </div>
-        </article>
-    </aside>
 </section>
 
 <script>

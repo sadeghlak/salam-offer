@@ -272,7 +272,7 @@ daily_off/templates/daily_off/product_detail.html
 
 - `/` صفحه اصلی Salam Offer و Product Operations Workspace تیم Daily Off است، نه KPI/marketing/admin dashboard.
 - تجربه اصلی برای اپراتوری روزانه ۵۰ تا ۳۰۰ محصول طراحی شده است؛ لیست محصولات اجرای امروز مهم‌ترین بخش صفحه است و بیشترین فضای viewport را می‌گیرد.
-- چیدمان کلی workspace از الگوی سه‌ناحیه‌ای الهام می‌گیرد: sidebar راست، مرکز table-first برای محصولات، و support panel سمت چپ برای context اجرای جاری؛ مرجع تصویری فقط برای جاگیری کامپوننت‌هاست، نه بازسازی file manager.
+- چیدمان کلی workspace از مرجع تصویری فقط برای جاگیری کامپوننت‌ها الهام می‌گیرد: sidebar راست و مرکز table-first برای محصولات؛ پنل‌های context مثل Run Focus/Outputs از صفحه اصلی حذف شده‌اند چون اجراها و گزارش‌گیری در sidebar هستند.
 - sidebar navigation حداقلی دارد: لوگوی Salam Offer، خانه، منوی آبشاری اجراها برای تغییر اجرای صفحه اصلی، و لینک گزارش‌گیری اجرای انتخاب‌شده. کارت‌های خلاصه/quick access در sidebar نمایش داده نمی‌شوند.
 - اجرای امروز براساس `business_date` به صورت پیش‌فرض انتخاب می‌شود و اگر نبود آخرین اجرا باز می‌شود؛ `/runs/<run_key>/` همان workspace را با اجرای انتخاب‌شده باز می‌کند.
 - بالای بخش اصلی یک منوی افقی placeholder قرار دارد تا فضای تنفسی بالای محصولات ایجاد شود؛ زیر آن toolbar فشرده برای Search، Filter و Sort قرار دارد.
