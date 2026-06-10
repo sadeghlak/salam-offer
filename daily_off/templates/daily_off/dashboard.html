@@ -10,11 +10,39 @@
     </a>
     <nav class="ops-nav">
         <a class="ops-nav-link active" href="{% url 'daily_off:dashboard' %}"><span class="ops-nav-dot"></span>خانه</a>
+        <div class="ops-sidebar-menu">
+            <button class="ops-nav-link has-menu" type="button"><span class="ops-nav-dot"></span>اجراها <span class="ops-nav-caret">‹</span></button>
+            <div class="ops-sidebar-dropdown" role="menu">
+                {% for sidebar_run in sidebar_runs %}
+                    <a class="ops-run-option {% if selected_run and sidebar_run.run_key == selected_run.run_key %}active{% endif %}" href="{% url 'daily_off:run_detail' sidebar_run.run_key %}">
+                        <span class="ops-run-option-title">
+                            <span>{{ sidebar_run.business_date|jalali_date }}</span>
+                            {% if sidebar_run.is_today %}<span class="badge ok">امروز</span>{% endif %}
+                        </span>
+                        <span class="ops-run-option-meta">
+                            <span>{{ sidebar_run.input_count }} ورودی</span>
+                            <span>{{ sidebar_run.status|status_label }}</span>
+                        </span>
+                    </a>
+                {% empty %}
+                    <span class="ops-run-option"><span class="ops-run-option-title">اجرایی ثبت نشده</span></span>
+                {% endfor %}
+            </div>
+        </div>
+        {% if selected_run %}<a class="ops-nav-link" href="{% url 'daily_off:export_run_analysis_candidates_csv' selected_run.run_key %}"><span class="ops-nav-dot"></span>گزارش‌گیری</a>{% endif %}
     </nav>
 </aside>
 {% endblock %}
 
 {% block content %}
+<nav class="ops-page-menu" aria-label="Workspace menu">
+    <div class="ops-page-menu-items">
+        <span class="ops-page-menu-item active">محصولات</span>
+        <span class="ops-page-menu-item">عملیات</span>
+        <span class="ops-page-menu-item">تنظیمات</span>
+    </div>
+    <span class="muted">Daily Off Workspace</span>
+</nav>
 {% if selected_run %}
 <section class="ops-dashboard-grid">
     <section class="ops-center">
@@ -146,16 +174,6 @@
                 <div class="support-list-row"><span>کل محصولات</span><strong>{{ run_summary.total }}</strong></div>
                 <div class="support-list-row"><span>خطای دریافت</span><strong>{{ run_summary.fetch_errors }}</strong></div>
                 <div class="support-list-row"><span>Run Key</span><strong>{{ run.run_key|truncatechars:8 }}</strong></div>
-            </div>
-        </article>
-        <article class="support-card">
-            <div class="support-kicker">Analysis Queue</div>
-            <div class="support-list">
-                <div class="support-list-row"><span>در انتظار</span><strong>{{ run_summary.pending }}</strong></div>
-                <div class="support-list-row"><span>در حال تحلیل</span><strong>{{ run_summary.running }}</strong></div>
-                <div class="support-list-row"><span>تحلیل‌شده</span><strong>{{ run_summary.analyzed }}</strong></div>
-                <div class="support-list-row"><span>بدون نتیجه</span><strong>{{ run_summary.no_match }}</strong></div>
-                <div class="support-list-row"><span>خطا</span><strong>{{ run_summary.error }}</strong></div>
             </div>
         </article>
         <article class="support-card">
