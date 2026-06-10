@@ -9,6 +9,7 @@ from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -638,12 +639,8 @@ def export_run_analysis_candidates_csv(request, run_key):
     return response
 
 
-def dashboard_home(request):
-    runs = list(DailyRun.objects.all()[:20])
-    for run in runs:
-        run.analysis_summary = compact_analysis_summary(analysis_counts_for_run(run))
-
-    totals = {
+def dashboard_totals():
+    return {
         'runs': DailyRun.objects.count(),
         'products': Product.objects.count(),
         'snapshots': DailyProductSnapshot.objects.count(),
@@ -654,15 +651,9 @@ def dashboard_home(request):
         'analysis_errors': DailyProductSnapshot.objects.filter(analysis_status=DailyProductSnapshot.AnalysisStatus.ERROR).count(),
         'fetch_errors': DailyProductSnapshot.objects.filter(fetch_status=DailyProductSnapshot.FetchStatus.FETCH_ERROR).count(),
     }
-    return render(request, 'daily_off/dashboard.html', {'runs': runs, 'totals': totals})
 
 
-def run_detail(request, run_key):
-    run = DailyRun.objects.filter(run_key=run_key).first()
-    if run is None:
-        messages.error(request, 'این اجرا در دیتابیس فعلی سایت پیدا نشد. اگر لینک از n8n یا محیط دیگری آمده، احتمالاً آن اجرا هنوز روی همین دیتابیس production ثبت نشده است.')
-        return redirect('daily_off:dashboard')
-
+def build_run_context(request, run):
     base_snapshots = run.snapshots.select_related('product').order_by('id')
 
     category = request.GET.get('category') or ''
@@ -714,8 +705,9 @@ def run_detail(request, run_key):
             search_filter |= Q(source_product_id=int(q)) | Q(id=int(q))
         snapshots = snapshots.filter(search_filter)
 
-    return render(request, 'daily_off/run_detail.html', {
+    return {
         'run': run,
+        'selected_run': run,
         'snapshots': snapshots,
         'category_options': category_options,
         'status_options': status_options,
@@ -727,7 +719,42 @@ def run_detail(request, run_key):
         'q': q,
         'run_summary': run_summary,
         'shown_count': snapshots.count(),
-    })
+    }
+
+
+def build_dashboard_context(request, selected_run=None):
+    today = timezone.localdate()
+    runs = list(DailyRun.objects.all()[:60])
+    for run in runs:
+        run.analysis_summary = compact_analysis_summary(analysis_counts_for_run(run))
+        run.is_today = run.business_date == today
+
+    if selected_run is None:
+        selected_run = next((run for run in runs if run.business_date == today), None) or (runs[0] if runs else None)
+
+    context = {
+        'runs': runs,
+        'sidebar_runs': runs,
+        'selected_run': selected_run,
+        'today': today,
+        'totals': dashboard_totals(),
+    }
+    if selected_run is not None:
+        context.update(build_run_context(request, selected_run))
+    return context
+
+
+def dashboard_home(request):
+    return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
+
+
+def run_detail(request, run_key):
+    run = DailyRun.objects.filter(run_key=run_key).first()
+    if run is None:
+        messages.error(request, 'این اجرا در دیتابیس فعلی سایت پیدا نشد. اگر لینک از n8n یا محیط دیگری آمده، احتمالاً آن اجرا هنوز روی همین دیتابیس production ثبت نشده است.')
+        return redirect('daily_off:dashboard')
+
+    return render(request, 'daily_off/dashboard.html', build_dashboard_context(request, selected_run=run))
 
 
 @require_POST

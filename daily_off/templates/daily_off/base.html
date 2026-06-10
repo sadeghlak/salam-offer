@@ -163,7 +163,20 @@
         .service-title { font-size: 13px; font-weight: 900; }
         .service-subtitle { margin-top: 2px; color: var(--muted); font-size: 11px; }
 
-        main { max-width: 1440px; margin: 0 auto; padding: 22px 20px 46px; }
+        .dashboard-shell { max-width: 1440px; margin: 0 auto; padding: 22px 20px 46px; display: grid; grid-template-columns: minmax(250px, 310px) minmax(0, 1fr); gap: 18px; align-items: start; }
+        .dashboard-main { min-width: 0; padding: 0; }
+        .dashboard-sidebar { position: sticky; top: 118px; max-height: calc(100vh - 138px); overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255, 255, 255, .88); box-shadow: var(--shadow-soft); }
+        .sidebar-brand { display: grid; gap: 6px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+        .sidebar-title { color: var(--text); font-size: 18px; font-weight: 950; direction: ltr; text-align: right; }
+        .sidebar-subtitle { color: var(--muted); font-size: 12px; line-height: 1.8; }
+        .sidebar-tab { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; margin-bottom: 12px; border-radius: 14px; background: var(--primary-soft); color: var(--primary-dark); font-size: 13px; font-weight: 950; border: 1px solid #ffd5bf; }
+        .sidebar-run-list { display: grid; gap: 8px; }
+        .sidebar-run-link { display: grid; gap: 7px; padding: 11px 12px; border-radius: 15px; border: 1px solid var(--line); background: var(--surface-soft); color: #514943; }
+        .sidebar-run-link:hover, .sidebar-run-link.active { color: var(--primary-dark); background: var(--primary-weak); border-color: #ffd5bf; }
+        .sidebar-run-link.active { box-shadow: inset 3px 0 0 var(--primary); }
+        .sidebar-run-date { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text); font-size: 13px; font-weight: 950; }
+        .sidebar-run-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
+        .sidebar-empty { padding: 14px; border-radius: 15px; border: 1px dashed var(--line-strong); color: var(--muted); font-size: 12px; line-height: 1.8; background: var(--surface-soft); }
         .messages { display: grid; gap: 10px; margin-bottom: 18px; }
         .message { padding: 12px 15px; border-radius: 15px; background: var(--primary-soft); color: var(--primary-dark); border: 1px solid #ffd5bf; font-size: 13px; line-height: 1.8; box-shadow: var(--shadow-soft); }
         .message.error { background: var(--danger-soft); color: var(--danger); border-color: #ffd0cb; }
@@ -252,8 +265,9 @@
         .stat-card.warning .metric { color: var(--warning); }
         .stat-card.danger .metric { color: var(--danger); }
 
-        .table-card { background: var(--surface); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-soft); border: 1px solid var(--line); }
+        .table-card { background: var(--surface); border-radius: 18px; overflow: auto; box-shadow: var(--shadow-soft); border: 1px solid var(--line); }
         table { width: 100%; border-collapse: collapse; background: transparent; }
+        .dashboard-table { min-width: 1060px; }
         th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; }
         th { background: #faf8f6; color: #5f4b42; font-size: 12px; font-weight: 900; white-space: nowrap; }
         tr:hover td { background: var(--primary-weak); }
@@ -293,6 +307,8 @@
         .debug-note, .process-note { margin-top: 8px; color: var(--muted); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; font-size: 12px; line-height: 1.9; }
 
         .product-cell { display: flex; align-items: center; gap: 12px; min-width: 320px; }
+        .product-thumb { width: 54px; height: 54px; flex: 0 0 54px; object-fit: cover; border-radius: 13px; background: #f0efed; border: 1px solid var(--line); }
+        .product-thumb-placeholder { width: 54px; height: 54px; flex: 0 0 54px; display: grid; place-items: center; border-radius: 13px; background: var(--surface-soft); border: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 900; }
         img.product, .listing-media img { width: 86px; height: 86px; object-fit: cover; border-radius: 15px; background: #f0efed; border: 1px solid var(--line); }
         .product-title { color: var(--text); font-weight: 950; line-height: 1.75; }
         .product-title:hover { color: var(--primary-dark); }
@@ -302,6 +318,9 @@
         .primary-price { color: var(--muted-soft); text-decoration: line-through; white-space: nowrap; }
         .price-label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
         .result-links { display: flex; flex-direction: column; gap: 7px; min-width: 130px; }
+        .dashboard-table .result-links { min-width: 120px; }
+        .dashboard-table .status-stack { min-width: 150px; }
+        .table-actions { display: grid; gap: 8px; min-width: 140px; }
         .result-link { display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 11px; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 900; text-align: center; border: 1px solid #ffd5bf; }
         .result-link:hover { background: var(--primary); color: white; }
 
@@ -367,6 +386,8 @@
 
         @media (max-width: 1100px) {
             .market-header-inner { grid-template-columns: 1fr; }
+            .dashboard-shell { grid-template-columns: 1fr; }
+            .dashboard-sidebar { position: static; max-height: none; }
             .header-meta { justify-content: flex-start; }
             .service-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .page-hero, .pdp-shell { grid-template-columns: 1fr; }
@@ -378,7 +399,7 @@
             .footer-card { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 700px) {
-            .market-header-inner, .nav-chips, .service-strip, main, .market-footer { padding-left: 12px; padding-right: 12px; }
+            .market-header-inner, .nav-chips, .service-strip, .dashboard-shell, .market-footer { padding-left: 12px; padding-right: 12px; }
             .market-search { height: auto; min-height: 42px; border-radius: 18px; }
             .service-strip { grid-template-columns: 1fr; }
             .page-hero { padding: 18px; border-radius: 20px; }
@@ -428,16 +449,19 @@
     <div class="service-item"><span class="service-icon">۴</span><span><span class="service-title">لینک‌های مشابه</span><span class="service-subtitle">دسترسی سریع به نتیجه‌ها</span></span></div>
 </section>
 
-<main>
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="message {{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% block content %}{% endblock %}
-</main>
+<div class="dashboard-shell">
+    {% block sidebar %}{% endblock %}
+    <main class="dashboard-main">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
 
 <footer class="market-footer">
     <div class="footer-card">
