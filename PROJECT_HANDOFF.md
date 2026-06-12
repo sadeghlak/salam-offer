@@ -182,7 +182,23 @@ daily_off/analysis_engine.py
 - `CandidateResult`
 - `AnalysisResult`
 
-### 4.4 Unit Rules
+### 4.4 Category Catalog and Family Router
+
+فایل‌ها:
+
+```text
+daily_off/data/category_catalog.json
+daily_off/category_catalog.py
+daily_off/family_router.py
+```
+
+`category_catalog.json` از فایل `C:\Users\iliaco\Downloads\کتگوری ها.xlsx` ساخته شده و artifact پایدار داخل repo است؛ runtime نباید از Downloads بخواند. loader مسیر category را از `cat_leaf_title`، `cat_lvl3_title` یا `cat_lvl2_title` resolve می‌کند تا دسته‌هایی مثل `گوشی موبایل` که level3 خالی/غیرمستقل دارند هم درست route شوند.
+
+Family Router فعلاً ساده و category-first است: ابتدا overrideهای level2 مثل `لوازم یدکی خودرو`، `لوازم جانبی خودرو`، `ابزار برقی`، `ابزار دستی`، `لوازم برقی` و `گوشی موبایل` را اعمال می‌کند؛ سپس mapping سطح ۱ به familyهایی مثل `food`، `digital`، `fashion`، `home_living`، `tools_auto` و غیره استفاده می‌شود. اگر category ناشناخته/عمومی باشد، title cues سبک به عنوان fallback استفاده می‌شوند و در نهایت `generic` با confidence پایین برمی‌گردد.
+
+در موتور تحلیل، خروجی family routing فعلاً فقط در `raw_candidate.family_routing` ذخیره می‌شود و اثر محدود دارد: strictness مربوط به برند/وات/مدل فقط برای familyهای فنی (`tools`, `digital`, `home_appliance`, `tools_auto`, `auto_part`) یا generic فعال می‌شود تا false positiveهای حساس کاهش یابد بدون اینکه سیستم به ProductIdentity سنگین تبدیل شود.
+
+### 4.5 Unit Rules
 
 فایل:
 
@@ -228,7 +244,7 @@ daily_off/unit_rules.py
 - فعلاً candidate فقط وقتی accepted می‌شود که مقدار معادل داشته باشد؛ price-per-unit برای مقدار متفاوت معیار acceptance نیست.
 - measurement استخراج‌شده از title مثل `برنج 10 کیلوگرمی` signal کمکی/گزارشی است، ولی بدون احتیاط جایگزین فیلد رسمی API نمی‌شود.
 
-### 4.5 Views and URLs
+### 4.6 Views and URLs
 
 فایل‌ها:
 
@@ -258,7 +274,7 @@ APIهای مهم:
 - `GET /runs/<run_key>/analysis-candidates/export.csv`
   - خروجی Excel-compatible CSV از گزارش candidateهای تحلیل.
 
-### 4.6 Templates
+### 4.7 Templates
 
 فایل‌های اصلی:
 
@@ -283,7 +299,7 @@ daily_off/templates/daily_off/product_detail.html
 - product detail امکان queue کردن تحلیل محصول و polling دارد.
 - خروجی‌ها و result links بعد از تحلیل از DB خوانده می‌شوند.
 
-### 4.7 Worker Command
+### 4.8 Worker Command
 
 فایل:
 
@@ -320,7 +336,9 @@ python manage.py process_analysis_queue --loop --sleep 2 --limit 1
 
 قبل از fetch کردن detail، Candidate Quality Filter محافظه‌کارانه اجرا می‌شود تا candidateهای واضحاً بد حذف شوند. در فاز ۱ فقط دو hard skip فعال است: قیمت search معتبر و گران‌تر/برابر محصول اصلی (`prefilter_not_cheaper`) و overlap صفر بین tokenهای عنوان source و candidate (`prefilter_title_overlap_too_low`). اگر قیمت candidate در search موجود نباشد یا یکی از titleها token قابل مقایسه نداشته باشد، candidate حذف نمی‌شود و برای detail fetch باقی می‌ماند. prefilter rejectedها فعلاً وارد `AnalysisCandidate` نمی‌شوند؛ فقط در analysis log و payload نتیجه با evidence سبک ذخیره می‌شوند.
 
-لایه semantic blocker از annotationهای دیتاست دستی ساخته شده و بدون مدل جدید، تفاوت‌های صریح title/attribute را reject می‌کند: subtype عسل و claimهای دیابتی/ساکاروز، نوع ماهی، ابعاد، ظرفیت، وات، مدل، برند، عمده/بسته چندتایی، تعداد خانه، accessory در برابر محصول اصلی، ترکیب آجیل و mismatch صریح جنس/کیفیت. ارسال رایگان و رضایت مشتری فعلاً future work هستند و در scoring دخالت داده نمی‌شوند.
+لایه semantic blocker از annotationهای دیتاست دستی ساخته شده و بدون مدل جدید، تفاوت‌های صریح title/attribute را reject می‌کند: subtype عسل و claimهای دیابتی/ساکاروز، نوع ماهی، ابعاد، ظرفیت، وات، مدل، برند، عمده/بسته چندتایی، تعداد خانه، accessory در برابر محصول اصلی، ترکیب آجیل و mismatch صریح جنس/کیفیت. برای هر semantic blocker اکنون `SemanticComparison.evidence` ساخته می‌شود و داخل `raw_candidate.semantic_evidence` و `raw_candidate.semantic_cues.evidence` ذخیره می‌شود. این evidence شامل `reason_code`، severity/confidence، کلید cue و values استخراج‌شده source/candidate است. ارسال رایگان و رضایت مشتری فعلاً future work هستند و در scoring دخالت داده نمی‌شوند.
+
+Family routing در `raw_candidate.family_routing` ذخیره می‌شود. اثر rule-level آن فعلاً محدود است: `semantic_brand_mismatch`، `semantic_wattage_mismatch` و `semantic_model_mismatch` فقط برای familyهای فنی یا generic اجرا می‌شوند؛ ruleهای food مثل honey/fish/nut و ruleهای اندازه/بسته‌بندی همچنان بر اساس cueهای explicit کار می‌کنند.
 
 اگر هر شرط بعد از detail fetch برقرار نباشد، candidate rejected می‌شود و دلیل reject در `AnalysisCandidate.rejection_reasons` و `rejection_reason_text` ذخیره می‌شود.
 
@@ -467,8 +485,8 @@ analysis snapshot finished snapshot_id=... status=... accepted=...
 
 1. تقویت منطق موتور تحلیل با تمرکز روی precision و کاهش false positive.
 2. Candidate Quality Filter فاز ۱ پیاده‌سازی شده است؛ قدم بعدی بررسی اثر آن روی داده واقعی و در صورت نیاز tuning محافظه‌کارانه است.
-3. ساخت Evidence System برای ثبت دقیق چرایی reject/accept و چرایی prefilter.
-4. ساخت Category Catalog و Family Router ساده با استفاده از فایل `C:\Users\iliaco\Downloads\کتگوری ها.xlsx` و تبدیل آن به artifact پایدار داخل repo.
+3. Evidence System اولیه برای semantic blockers پیاده‌سازی شده و evidence داخل `raw_candidate` ذخیره می‌شود؛ migration جدید فعلاً لازم نیست.
+4. Category Catalog و Family Router ساده با artifact پایدار `daily_off/data/category_catalog.json` پیاده‌سازی شده‌اند.
 5. تست branch `salam-test` روی دامنه تستی و بررسی اثر تغییرات روی محصولات واقعی.
 6. تحلیل تعدادی محصول، گرفتن خروجی گزارش، annotation انسانی، و تبدیل خطاهای پرتکرار به ruleهای جدید.
 
@@ -499,7 +517,7 @@ NEXT_ANALYSIS_ENGINE_WORK.md
 
 - پروژه در فاز Build → Improve است، نه Research → Build؛ سیستم فعلی کار می‌کند و باید incremental بهتر شود.
 - خطر اصلی فاز فعلی complexity است، بنابراین تغییرات باید کم‌ریسک، قابل تست و قابل rollback باشند.
-- Candidate Quality Filter و Evidence System قبل از ProductIdentity کامل اجرا می‌شوند.
+- Candidate Quality Filter، Evidence System اولیه، Category Catalog و Simple Family Router قبل از ProductIdentity کامل اجرا شده‌اند.
 - Category باید first priority در routing باشد، ولی category-only نیست؛ title cues و attributes نقش fallback/support دارند.
 - `cat_leaf_title` از فایل دسته‌بندی‌ها canonical category محصول محسوب می‌شود چون بعضی دسته‌ها مثل `گوشی موبایل` level3 ندارند.
-- بعد از هر فاز کامل و تست‌شده، تغییرات باید طبق ترجیح کاربر commit و push شوند.
+- طبق درخواست جدید کاربر، اصلاحات بعدی فعلاً local نگه داشته می‌شوند و push فقط با دستور صریح کاربر انجام می‌شود.

@@ -317,6 +317,8 @@ Verification فاز ۱:
 
 ## 6. Task 2 — Evidence System
 
+**وضعیت: انجام شد.** Evidence اولیه بدون migration پیاده‌سازی شده و داخل `raw_candidate` ذخیره می‌شود.
+
 ### 6.1 هدف
 
 هر reason code باید evidence قابل خواندن داشته باشد. الان `semantic_wattage_mismatch` داریم، ولی باید بدانیم:
@@ -386,7 +388,19 @@ Candidate Quality Filter هم باید evidence بسازد:
 
 بعداً اگر evidence خیلی مهم شد، مدل `AnalysisCandidate` می‌تواند فیلد `evidence_json` بگیرد. فعلاً نه.
 
+### 6.6 نتیجه اجرای Task 2
+
+پیاده‌سازی انجام‌شده:
+
+- `SemanticComparison` اکنون فیلد `evidence` دارد.
+- هر semantic blocker ساختار evidence شامل `rule`، `reason_code`، `severity`، `confidence`، `key` و values source/candidate می‌سازد.
+- evidence برای compatibility در `comparison.details['evidence']` هم قرار می‌گیرد.
+- `score_candidate(...)` evidence را داخل `raw_candidate.semantic_evidence` ذخیره می‌کند.
+- تست evidence برای `semantic_wattage_mismatch` اضافه شد.
+
 ## 7. Task 3 — Category Catalog + Simple Family Router
+
+**وضعیت: انجام شد.** فایل Excel به artifact پایدار داخل repo تبدیل شد و loader/router ساده اضافه شد.
 
 ### 7.1 هدف
 
@@ -504,7 +518,18 @@ Attributes support
 - level2/lvl1 match → medium/high
 - generic/sayer/unknown → low و title cues حق دخالت بیشتر دارد
 
+### 7.7 نتیجه اجرای Task 3
+
+پیاده‌سازی انجام‌شده:
+
+- `daily_off/data/category_catalog.json` با ۹۴۱ row از `C:\Users\iliaco\Downloads\کتگوری ها.xlsx` ساخته شد.
+- `daily_off/category_catalog.py` برای load و resolve کردن category path اضافه شد.
+- `daily_off/family_router.py` برای route کردن family با اولویت category و fallback سبک title cues اضافه شد.
+- تست‌های family routing برای `گوشی موبایل`، `لنت ترمز خودرو`، `لوازم برقی/کولر آبی`، `بادام درختی` و unknown اضافه شد.
+
 ## 8. Task 4 — استفاده محدود از family در موتور
+
+**وضعیت: انجام شد.** استفاده family محدود و کم‌ریسک نگه داشته شد.
 
 در فاز اول family نباید همه چیز را تغییر دهد.
 
@@ -515,6 +540,16 @@ Attributes support
    - fish/honey/nut فقط در food یا وقتی title cue واضح دارد.
    - wattage/brand strictness در tools/digital/home_appliance بیشتر شود.
 3. استفاده در Candidate Quality Filter برای category mismatch آینده.
+
+### 8.1 نتیجه اجرای Task 4
+
+پیاده‌سازی انجام‌شده:
+
+- `score_candidate(...)` برای source و candidate خروجی `route_product_family(...)` می‌سازد.
+- خروجی routing در `raw_candidate.family_routing` ذخیره می‌شود.
+- strict semantic rules مربوط به برند، وات و مدل فقط برای familyهای فنی (`tools`, `digital`, `home_appliance`, `tools_auto`, `auto_part`) یا generic فعال می‌شوند.
+- Category mismatch هنوز وارد prefilter نشده و برای آینده نگه داشته شده است.
+- ProductIdentity کامل، family profileهای زیاد و migration جدید اضافه نشده‌اند.
 
 ## 9. چیزهایی که فعلاً انجام نمی‌دهیم
 
@@ -583,14 +618,14 @@ C:\Users\iliaco\Downloads\دیتاست 1_files\sheet001.htm
 
 فاز بعدی موفق است اگر:
 
-1. Candidateهای گران‌تر واضح قبل از detail fetch حذف شوند.
-2. Candidateهای بی‌ربط با title overlap صفر حذف شوند.
-3. Semantic blockerها evidence ساختاریافته داشته باشند.
-4. فایل category catalog داخل repo وجود داشته باشد و runtime به Downloads وابسته نباشد.
-5. route_family برای categoryهای اصلی درست کار کند.
-6. تست‌ها pass شوند.
-7. `PROJECT_HANDOFF.md` با تغییرات جدید آپدیت شود.
-8. تغییرات روی `origin/salam-test` commit و push شوند.
+1. Candidateهای گران‌تر واضح قبل از detail fetch حذف شوند. ✅
+2. Candidateهای بی‌ربط با title overlap صفر حذف شوند. ✅
+3. Semantic blockerها evidence ساختاریافته داشته باشند. ✅
+4. فایل category catalog داخل repo وجود داشته باشد و runtime به Downloads وابسته نباشد. ✅
+5. route_family برای categoryهای اصلی درست کار کند. ✅
+6. تست‌ها pass شوند. ✅
+7. `PROJECT_HANDOFF.md` با تغییرات جدید آپدیت شود. ✅
+8. تغییرات روی `origin/salam-test` commit و push شوند. ⏸ طبق درخواست جدید کاربر فعلاً push انجام نمی‌شود تا دستور صریح بدهد.
 
 ## 12. فایل‌های اصلی فاز بعدی
 

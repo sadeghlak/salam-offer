@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 
+from .family_router import route_product_family
 from .models import AnalysisStatusLog, DailyProductSnapshot
 from .services import as_float, as_int, clean_string, log_analysis_status, nested_get, product_url
 from .semantic_rules import compare_semantic_cues
@@ -511,6 +512,20 @@ def score_candidate(*, snapshot, candidate, config):
         title=candidate.get('candidate_title'),
     )
     unit_comparison = compare_measurements(source_measurement, candidate_measurement)
+    source_family = route_product_family(
+        category_title=getattr(snapshot, 'category_title', ''),
+        navigation_title=getattr(snapshot, 'navigation_title', ''),
+        navigation_slug=getattr(snapshot, 'navigation_slug', ''),
+        title=getattr(snapshot, 'title', ''),
+        attributes_text=getattr(snapshot, 'attributes_text', ''),
+    )
+    candidate_family = route_product_family(
+        category_title=candidate.get('candidate_category_title'),
+        navigation_title=candidate.get('candidate_navigation_title'),
+        navigation_slug=candidate.get('candidate_navigation_slug'),
+        title=candidate.get('candidate_title'),
+        attributes_text=candidate.get('candidate_attributes_text'),
+    )
     semantic_comparison = compare_semantic_cues(
         source_title=snapshot.title,
         source_text=' | '.join([
@@ -523,6 +538,8 @@ def score_candidate(*, snapshot, candidate, config):
             clean_string(candidate.get('candidate_category_parent_title')), clean_string(candidate.get('candidate_attributes_text')),
             clean_string(candidate.get('candidate_description')), clean_string(candidate.get('candidate_summary')),
         ]),
+        source_family=source_family.get('family'),
+        candidate_family=candidate_family.get('family'),
     )
     is_exact = unit_comparison.equivalent
     weight_score = unit_comparison.score
@@ -612,6 +629,11 @@ def score_candidate(*, snapshot, candidate, config):
             'candidate_title_unit': candidate_measurement.title_unit,
             'candidate_title_quantity_normalized': candidate_measurement.title_normalized_quantity,
             'semantic_cues': semantic_comparison.details,
+            'semantic_evidence': semantic_comparison.evidence,
+            'family_routing': {
+                'source': source_family,
+                'candidate': candidate_family,
+            },
         },
     )
 

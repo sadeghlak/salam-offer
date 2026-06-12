@@ -3,6 +3,8 @@ from types import SimpleNamespace
 from django.test import SimpleTestCase
 
 from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
+from .category_catalog import resolve_category_path
+from .family_router import route_family, route_product_family
 from .models import DailyProductSnapshot
 from .semantic_rules import compare_semantic_cues
 
@@ -46,6 +48,20 @@ class SemanticRulesTests(SimpleTestCase):
         self.assertBlocked('کولر گازی هایسنس 24 هزار', 'کولر گازی هایسنس 18 هزار', 'semantic_capacity_mismatch')
         self.assertBlocked('مینی فرز باس 1500 وات', 'مینی فرز باس 2500 وات', 'semantic_wattage_mismatch')
 
+    def test_wattage_mismatch_has_structured_evidence(self):
+        comparison = compare_semantic_cues(
+            source_title='مینی فرز باس 1500 وات',
+            source_text='مینی فرز باس 1500 وات',
+            candidate_title='مینی فرز باس 2500 وات',
+            candidate_text='مینی فرز باس 2500 وات',
+        )
+
+        self.assertIn('semantic_wattage_mismatch', comparison.blocker_reasons)
+        evidence = [row for row in comparison.evidence if row['reason_code'] == 'semantic_wattage_mismatch'][0]
+        self.assertEqual(evidence['key'], 'wattages')
+        self.assertEqual(evidence['source']['values'], [1500])
+        self.assertEqual(evidence['candidate']['values'], [2500])
+
     def test_brand_mismatch(self):
         self.assertBlocked('مینی فرز باس 1500 وات', 'مینی فرز ماکیتا 1500 وات', 'semantic_brand_mismatch')
 
@@ -62,6 +78,41 @@ class SemanticRulesTests(SimpleTestCase):
 
     def test_nut_mix_mismatch(self):
         self.assertBlocked('آجیل چهارمغز شور تازه', 'آجیل پنج مغز شور تازه', 'semantic_nut_mix_mismatch')
+
+
+class FamilyRouterTests(SimpleTestCase):
+    def test_mobile_without_level3_routes_to_digital(self):
+        category_path = resolve_category_path(category_title='گوشی موبایل')
+        route = route_family(category_path, title='گوشی موبایل سامسونگ')
+
+        self.assertEqual(category_path['leaf'], 'گوشی موبایل')
+        self.assertEqual(category_path['lvl2'], 'گوشی موبایل')
+        self.assertEqual(route['family'], 'digital')
+        self.assertEqual(route['confidence'], 'high')
+
+    def test_brake_pad_routes_to_auto_part(self):
+        route = route_product_family(category_title='لنت ترمز خودرو', title='لنت ترمز جلو')
+
+        self.assertEqual(route['family'], 'auto_part')
+        self.assertEqual(route['confidence'], 'high')
+
+    def test_water_cooler_routes_to_home_appliance(self):
+        route = route_product_family(category_title='لوازم برقی', title='کولر آبی')
+
+        self.assertEqual(route['family'], 'home_appliance')
+        self.assertEqual(route['confidence'], 'high')
+
+    def test_almond_routes_to_food(self):
+        route = route_product_family(category_title='بادام درختی', title='بادام درختی تازه')
+
+        self.assertEqual(route['family'], 'food')
+        self.assertEqual(route['confidence'], 'high')
+
+    def test_unknown_routes_to_generic_low_confidence(self):
+        route = route_product_family(category_title='دسته ناموجود تستی', title='محصول نامشخص')
+
+        self.assertEqual(route['family'], 'generic')
+        self.assertEqual(route['confidence'], 'low')
 
 
 class CandidatePrefilterTests(SimpleTestCase):
@@ -166,4 +217,7 @@ class ScoreCandidateSemanticBlockerTests(SimpleTestCase):
         self.assertIn('semantic_wattage_mismatch', result.rejection_reasons)
         self.assertEqual(result.raw_candidate['semantic_cues']['source']['wattages'], [1500])
         self.assertEqual(result.raw_candidate['semantic_cues']['candidate']['wattages'], [2500])
+        self.assertEqual(result.raw_candidate['semantic_evidence'][0]['reason_code'], 'semantic_wattage_mismatch')
+        self.assertEqual(result.raw_candidate['family_routing']['source']['family'], 'tools')
+        self.assertEqual(result.raw_candidate['family_routing']['candidate']['family'], 'tools')
         self.assertEqual(DailyProductSnapshot.AnalysisStatus.PENDING, 'analysis_pending')
