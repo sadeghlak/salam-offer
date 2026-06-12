@@ -462,9 +462,41 @@ analysis snapshot finished snapshot_id=... status=... accepted=...
 
 اولویت‌های فعلی پروژه:
 
-1. تست branch `salam-test` روی دامنه تستی.
-2. اطمینان از کارکرد web + worker + DB تست.
-3. اجرای n8n test import روی دامنه تست.
-4. تحلیل تعدادی محصول و گرفتن CSV گزارش.
-5. کاربر CSV را اصلاح کند و دیتاست اولیه را بدهد.
-6. براساس دیتاست، tuning موتور تحلیل شروع شود.
+1. تقویت منطق موتور تحلیل با تمرکز روی precision و کاهش false positive.
+2. اضافه کردن Candidate Quality Filter قبل از fetch کردن detail کاندیداها.
+3. ساخت Evidence System برای ثبت دقیق چرایی reject/accept و چرایی prefilter.
+4. ساخت Category Catalog و Family Router ساده با استفاده از فایل `C:\Users\iliaco\Downloads\کتگوری ها.xlsx` و تبدیل آن به artifact پایدار داخل repo.
+5. تست branch `salam-test` روی دامنه تستی و بررسی اثر تغییرات روی محصولات واقعی.
+6. تحلیل تعدادی محصول، گرفتن خروجی گزارش، annotation انسانی، و تبدیل خطاهای پرتکرار به ruleهای جدید.
+
+سطح دسترسی/OAuth فعلاً اولویت ۲ است و فقط وقتی کاربر صراحتاً بگوید وارد فاز auth/access می‌شویم.
+
+## 13. نقشه دقیق فاز بعدی موتور تحلیل
+
+برای جلوگیری از گم شدن تصمیم‌های این چت، نقشه‌ی اجرایی کامل فاز بعدی در فایل زیر ثبت شده است:
+
+```text
+NEXT_ANALYSIS_ENGINE_WORK.md
+```
+
+این فایل باید قبل از شروع هر کار جدید روی منطق تحلیل خوانده شود. محتوای آن شامل جزئیات ۱۰۰٪ کارهای بعدی است:
+
+- وضعیت فعلی pipeline موتور تحلیل.
+- هدف فاز بعدی و دلیل اینکه نباید وارد refactor سنگین یا ProductIdentity کامل شویم.
+- جزئیات Candidate Quality Filter قبل از `fetch_candidate_detail`.
+- طراحی Evidence System برای semantic blockers و prefilter decisions.
+- روش تبدیل فایل `کتگوری ها.xlsx` به `daily_off/data/category_catalog.json`.
+- طراحی Category Catalog و Simple Family Router.
+- لیست familyهای اولیه و overrideهای level2.
+- مواردی که فعلاً نباید انجام شوند، مثل ProductIdentity کامل، family profileهای زیاد، ML model جدید، migration evidence، یا ورود ارسال رایگان/رضایت مشتری به scoring.
+- تست‌ها و verificationهای لازم.
+- فایل‌هایی که احتمالاً باید تغییر یا اضافه شوند.
+
+تصمیم‌های قطعی ثبت‌شده در آن فایل:
+
+- پروژه در فاز Build → Improve است، نه Research → Build؛ سیستم فعلی کار می‌کند و باید incremental بهتر شود.
+- خطر اصلی فاز فعلی complexity است، بنابراین تغییرات باید کم‌ریسک، قابل تست و قابل rollback باشند.
+- Candidate Quality Filter و Evidence System قبل از ProductIdentity کامل اجرا می‌شوند.
+- Category باید first priority در routing باشد، ولی category-only نیست؛ title cues و attributes نقش fallback/support دارند.
+- `cat_leaf_title` از فایل دسته‌بندی‌ها canonical category محصول محسوب می‌شود چون بعضی دسته‌ها مثل `گوشی موبایل` level3 ندارند.
+- بعد از هر فاز کامل و تست‌شده، تغییرات باید طبق ترجیح کاربر commit و push شوند.
