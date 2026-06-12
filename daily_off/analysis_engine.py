@@ -110,6 +110,8 @@ class AnalysisResult:
     candidates_seen_count: int = 0
     candidates_deduped_count: int = 0
     candidate_details_fetched_count: int = 0
+    candidate_prefilter_rejected_count: int = 0
+    candidate_prefilter_rejections: list = field(default_factory=list)
     accepted_candidates: list = field(default_factory=list)
     rejected_candidates: list = field(default_factory=list)
 
@@ -126,6 +128,8 @@ class AnalysisResult:
             'candidates_seen_count': self.candidates_seen_count,
             'candidates_deduped_count': self.candidates_deduped_count,
             'candidate_details_fetched_count': self.candidate_details_fetched_count,
+            'candidate_prefilter_rejected_count': self.candidate_prefilter_rejected_count,
+            'candidate_prefilter_rejections': self.candidate_prefilter_rejections,
             'analysis_candidates': [row.to_candidate_payload() for row in [*self.accepted_candidates, *self.rejected_candidates]],
         }
 
@@ -353,6 +357,70 @@ def dedupe_candidates(*, source_snapshot, text_results, image_results, detail_fe
     return list(mapped.values())[:detail_fetch_limit]
 
 
+def title_token_overlap(left, right):
+    left_tokens = set(tokenize(left))
+    right_tokens = set(tokenize(right))
+    if not left_tokens or not right_tokens:
+        return 0
+    return len(left_tokens & right_tokens) / min(len(left_tokens), len(right_tokens))
+
+
+def prefilter_candidates(*, snapshot, candidates, config):
+    passed = []
+    rejected = []
+    source_price = as_int(getattr(snapshot, 'price', 0))
+    source_title = getattr(snapshot, 'title', '')
+    source_title_tokens = tokenize(source_title)
+
+    for candidate in candidates:
+        candidate_id = as_int(candidate.get('candidate_id'))
+        candidate_price = as_int(candidate.get('candidate_price'))
+        candidate_title = candidate.get('candidate_title')
+        candidate_title_tokens = tokenize(candidate_title)
+        overlap = title_token_overlap(source_title, candidate_title)
+
+        if source_price > 0 and candidate_price > 0 and candidate_price >= source_price:
+            rejected.append({
+                'candidate_id': candidate_id,
+                'candidate_title': clean_string(candidate_title),
+                'reason_code': 'prefilter_not_cheaper',
+                'stage': 'prefilter',
+                'confidence': 'high',
+                'search_sources': candidate.get('search_sources') or [],
+                'evidence': {
+                    'source': {'price': source_price},
+                    'candidate': {'price': candidate_price},
+                },
+            })
+            continue
+
+        if source_title_tokens and candidate_title_tokens and overlap == 0:
+            rejected.append({
+                'candidate_id': candidate_id,
+                'candidate_title': clean_string(candidate_title),
+                'reason_code': 'prefilter_title_overlap_too_low',
+                'stage': 'prefilter',
+                'confidence': 'high',
+                'search_sources': candidate.get('search_sources') or [],
+                'evidence': {
+                    'source': {
+                        'title': clean_string(source_title),
+                        'title_tokens': source_title_tokens,
+                    },
+                    'candidate': {
+                        'title': clean_string(candidate_title),
+                        'title_tokens': candidate_title_tokens,
+                    },
+                    'title_overlap': overlap,
+                },
+            })
+            continue
+
+        passed.append(candidate)
+
+    return passed, rejected
+
+
 def attributes_text(raw_product):
     attrs = raw_product.get('attributes') or []
     parts = []
@@ -548,7 +616,16 @@ def score_candidate(*, snapshot, candidate, config):
     )
 
 
-def aggregate_candidate_results(*, snapshot, scored, candidates_seen_count, candidates_deduped_count, detail_count):
+def aggregate_candidate_results(
+    *,
+    snapshot,
+    scored,
+    candidates_seen_count,
+    candidates_deduped_count,
+    detail_count,
+    prefilter_rejections=None,
+):
+    prefilter_rejections = prefilter_rejections or []
     accepted = [row for row in scored if row.accepted]
     accepted.sort(key=lambda row: (-row.similarity_score, row.price))
     top_matches = accepted[:3]
@@ -565,6 +642,8 @@ def aggregate_candidate_results(*, snapshot, scored, candidates_seen_count, cand
         candidates_seen_count=candidates_seen_count,
         candidates_deduped_count=candidates_deduped_count,
         candidate_details_fetched_count=detail_count,
+        candidate_prefilter_rejected_count=len(prefilter_rejections),
+        candidate_prefilter_rejections=prefilter_rejections,
         accepted_candidates=accepted,
         rejected_candidates=[row for row in scored if not row.accepted],
     )
@@ -647,8 +726,25 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
         actor=actor,
     )
 
+    filtered_candidates, prefilter_rejections = prefilter_candidates(snapshot=snapshot, candidates=deduped, config=config)
+    if prefilter_rejections:
+        log_analysis_status(
+            snapshot=snapshot,
+            event_type=AnalysisStatusLog.EventType.CANDIDATES_DEDUPED,
+            message='کاندیداهای کم‌کیفیت قبل از دریافت جزئیات حذف شدند.',
+            metadata={
+                'stage': 'prefilter',
+                'input_count': len(deduped),
+                'passed_count': len(filtered_candidates),
+                'rejected_count': len(prefilter_rejections),
+                'rejections': prefilter_rejections[:20],
+            },
+            request_id=request_id,
+            actor=actor,
+        )
+
     detailed = []
-    for candidate in deduped:
+    for candidate in filtered_candidates:
         try:
             detailed.append(fetch_candidate_detail(candidate, config))
         except Exception as exc:
@@ -668,6 +764,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
         candidates_seen_count=len(text_results) + len(image_results),
         candidates_deduped_count=len(deduped),
         detail_count=len(detailed),
+        prefilter_rejections=prefilter_rejections,
     )
     log_analysis_status(
         snapshot=snapshot,

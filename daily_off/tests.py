@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 from django.test import SimpleTestCase
 
-from .analysis_engine import AnalysisConfig, score_candidate
+from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
 from .models import DailyProductSnapshot
 from .semantic_rules import compare_semantic_cues
 
@@ -62,6 +62,68 @@ class SemanticRulesTests(SimpleTestCase):
 
     def test_nut_mix_mismatch(self):
         self.assertBlocked('آجیل چهارمغز شور تازه', 'آجیل پنج مغز شور تازه', 'semantic_nut_mix_mismatch')
+
+
+class CandidatePrefilterTests(SimpleTestCase):
+    def snapshot(self, title='مینی فرز باس 1500 وات', price=1_000_000):
+        return SimpleNamespace(title=title, price=price)
+
+    def test_candidate_with_valid_higher_search_price_is_rejected(self):
+        candidates = [{
+            'candidate_id': 200,
+            'candidate_title': 'مینی فرز باس 1500 وات',
+            'candidate_price': 1_200_000,
+            'search_sources': ['text'],
+        }]
+
+        passed, rejected = prefilter_candidates(snapshot=self.snapshot(), candidates=candidates, config=AnalysisConfig())
+
+        self.assertEqual(passed, [])
+        self.assertEqual(len(rejected), 1)
+        self.assertEqual(rejected[0]['reason_code'], 'prefilter_not_cheaper')
+        self.assertEqual(rejected[0]['evidence']['source']['price'], 1_000_000)
+        self.assertEqual(rejected[0]['evidence']['candidate']['price'], 1_200_000)
+
+    def test_candidate_without_search_price_is_not_rejected_by_price(self):
+        candidates = [{
+            'candidate_id': 200,
+            'candidate_title': 'مینی فرز باس 1500 وات',
+            'candidate_price': 0,
+            'search_sources': ['text'],
+        }]
+
+        passed, rejected = prefilter_candidates(snapshot=self.snapshot(), candidates=candidates, config=AnalysisConfig())
+
+        self.assertEqual(passed, candidates)
+        self.assertEqual(rejected, [])
+
+    def test_candidate_with_zero_title_overlap_is_rejected(self):
+        candidates = [{
+            'candidate_id': 200,
+            'candidate_title': 'کفش ورزشی مردانه',
+            'candidate_price': 900_000,
+            'search_sources': ['image'],
+        }]
+
+        passed, rejected = prefilter_candidates(snapshot=self.snapshot(), candidates=candidates, config=AnalysisConfig())
+
+        self.assertEqual(passed, [])
+        self.assertEqual(len(rejected), 1)
+        self.assertEqual(rejected[0]['reason_code'], 'prefilter_title_overlap_too_low')
+        self.assertEqual(rejected[0]['evidence']['title_overlap'], 0)
+
+    def test_good_candidate_passes_prefilter(self):
+        candidates = [{
+            'candidate_id': 200,
+            'candidate_title': 'مینی فرز باس 1500 وات دسته بلند',
+            'candidate_price': 900_000,
+            'search_sources': ['text'],
+        }]
+
+        passed, rejected = prefilter_candidates(snapshot=self.snapshot(), candidates=candidates, config=AnalysisConfig())
+
+        self.assertEqual(passed, candidates)
+        self.assertEqual(rejected, [])
 
 
 class ScoreCandidateSemanticBlockerTests(SimpleTestCase):

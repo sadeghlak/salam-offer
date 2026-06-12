@@ -169,11 +169,12 @@ daily_off/analysis_engine.py
 2. text search در باسلام
 3. image search در صورت وجود عکس
 4. merge/dedupe کاندیدها
-5. fetch کردن detail هر candidate از OpenAPI باسلام
-6. normalize کردن candidate detail
-7. score کردن هر candidate
-8. انتخاب acceptedها و ساخت `product_url1/2/3`
-9. ساخت `AnalysisResult` شامل accepted و rejected candidates
+5. اجرای Candidate Quality Filter محافظه‌کارانه قبل از detail fetch
+6. fetch کردن detail فقط برای candidateهای passشده از OpenAPI باسلام
+7. normalize کردن candidate detail
+8. score کردن هر candidate
+9. انتخاب acceptedها و ساخت `product_url1/2/3`
+10. ساخت `AnalysisResult` شامل accepted و rejected candidates و metadata مربوط به prefilter
 
 کلاس‌های مهم:
 
@@ -317,9 +318,11 @@ python manage.py process_analysis_queue --loop --sleep 2 --limit 1
 5. مقدار نرمال‌شده source و candidate با tolerance یک درصد معادل باشد.
 6. هیچ semantic blocker با اطمینان بالا بین source و candidate وجود نداشته باشد.
 
+قبل از fetch کردن detail، Candidate Quality Filter محافظه‌کارانه اجرا می‌شود تا candidateهای واضحاً بد حذف شوند. در فاز ۱ فقط دو hard skip فعال است: قیمت search معتبر و گران‌تر/برابر محصول اصلی (`prefilter_not_cheaper`) و overlap صفر بین tokenهای عنوان source و candidate (`prefilter_title_overlap_too_low`). اگر قیمت candidate در search موجود نباشد یا یکی از titleها token قابل مقایسه نداشته باشد، candidate حذف نمی‌شود و برای detail fetch باقی می‌ماند. prefilter rejectedها فعلاً وارد `AnalysisCandidate` نمی‌شوند؛ فقط در analysis log و payload نتیجه با evidence سبک ذخیره می‌شوند.
+
 لایه semantic blocker از annotationهای دیتاست دستی ساخته شده و بدون مدل جدید، تفاوت‌های صریح title/attribute را reject می‌کند: subtype عسل و claimهای دیابتی/ساکاروز، نوع ماهی، ابعاد، ظرفیت، وات، مدل، برند، عمده/بسته چندتایی، تعداد خانه، accessory در برابر محصول اصلی، ترکیب آجیل و mismatch صریح جنس/کیفیت. ارسال رایگان و رضایت مشتری فعلاً future work هستند و در scoring دخالت داده نمی‌شوند.
 
-اگر هر شرط برقرار نباشد، candidate rejected می‌شود و دلیل reject در `AnalysisCandidate.rejection_reasons` و `rejection_reason_text` ذخیره می‌شود.
+اگر هر شرط بعد از detail fetch برقرار نباشد، candidate rejected می‌شود و دلیل reject در `AnalysisCandidate.rejection_reasons` و `rejection_reason_text` ذخیره می‌شود.
 
 دلایل reject فعلی:
 
@@ -463,7 +466,7 @@ analysis snapshot finished snapshot_id=... status=... accepted=...
 اولویت‌های فعلی پروژه:
 
 1. تقویت منطق موتور تحلیل با تمرکز روی precision و کاهش false positive.
-2. اضافه کردن Candidate Quality Filter قبل از fetch کردن detail کاندیداها.
+2. Candidate Quality Filter فاز ۱ پیاده‌سازی شده است؛ قدم بعدی بررسی اثر آن روی داده واقعی و در صورت نیاز tuning محافظه‌کارانه است.
 3. ساخت Evidence System برای ثبت دقیق چرایی reject/accept و چرایی prefilter.
 4. ساخت Category Catalog و Family Router ساده با استفاده از فایل `C:\Users\iliaco\Downloads\کتگوری ها.xlsx` و تبدیل آن به artifact پایدار داخل repo.
 5. تست branch `salam-test` روی دامنه تستی و بررسی اثر تغییرات روی محصولات واقعی.

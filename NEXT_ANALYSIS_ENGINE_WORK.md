@@ -121,7 +121,7 @@ daily_off/data/category_catalog.json
 ترتیب اجرای پیشنهادی:
 
 ```text
-Task 1: Candidate Quality Filter
+Task 1: Candidate Quality Filter — انجام شد در فاز ۱
 Task 2: Evidence System
 Task 3: Category Catalog + Simple Family Router
 Task 4: استفاده محدود از family در filter/rules
@@ -133,6 +133,8 @@ Task 5: بعد از جمع شدن داده، Attribute Extractor / ProductIdenti
 ## 5. Task 1 — Candidate Quality Filter
 
 ### 5.1 هدف
+
+**وضعیت فاز ۱: انجام شد.** پیاده‌سازی فعلی محافظه‌کارانه است و فقط hard skipهای واضح را قبل از `fetch_candidate_detail` اعمال می‌کند.
 
 قبل از اینکه برای هر candidate هزینه‌ی `fetch_candidate_detail` بدهیم، candidateهای واضحاً بد را حذف یا پایین‌اولویت کنیم.
 
@@ -291,6 +293,27 @@ Prefilter rejectedها فقط در log ذخیره شوند و وارد `Analysis
 Prefilter rejectedها هم به عنوان `AnalysisCandidate` با decision rejected ذخیره شوند، اما چون detail ندارند ممکن است فیلدهای candidate کامل نباشد.
 
 برای فاز اول پیشنهاد: **فقط log و raw analysis result metadata**. بعداً اگر لازم شد در جدول ذخیره شوند.
+
+### 5.7 نتیجه اجرای فاز ۱
+
+در فاز ۱ موارد زیر پیاده‌سازی شد:
+
+- `title_token_overlap(...)` برای سنجش overlap ساده tokenهای عنوان.
+- `prefilter_candidates(...)` در `daily_off/analysis_engine.py` بعد از dedupe و قبل از detail fetch.
+- hard skip `prefilter_not_cheaper` وقتی `snapshot.price` و `candidate_price` معتبر باشند و candidate ارزان‌تر نباشد.
+- hard skip `prefilter_title_overlap_too_low` وقتی هر دو title token داشته باشند و overlap صفر باشد.
+- candidate بدون قیمت search یا title بدون token قابل مقایسه حذف نمی‌شود تا ریسک false negative کم بماند.
+- prefilter rejectedها در log و `AnalysisResult.to_payload()` با `candidate_prefilter_rejected_count` و `candidate_prefilter_rejections` ذخیره می‌شوند، اما وارد `AnalysisCandidate` نمی‌شوند.
+- تست‌های `CandidatePrefilterTests` در `daily_off/tests.py` اضافه شد.
+
+Verification فاز ۱:
+
+```powershell
+& "D:\basalam\salam_offer\.venv\Scripts\python.exe" "D:\basalam\salam_offer\manage.py" test daily_off.tests
+& "D:\basalam\salam_offer\.venv\Scripts\python.exe" "D:\basalam\salam_offer\manage.py" check
+```
+
+هر دو command بدون خطا pass شدند.
 
 ## 6. Task 2 — Evidence System
 
