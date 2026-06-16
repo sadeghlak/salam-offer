@@ -67,6 +67,47 @@ class SemanticRulesTests(SimpleTestCase):
     def test_brand_mismatch(self):
         self.assertBlocked('مینی فرز باس 1500 وات', 'مینی فرز ماکیتا 1500 وات', 'semantic_brand_mismatch')
 
+    def test_digital_brand_persian_english_equivalence(self):
+        comparison = compare_semantic_cues(
+            source_title='گوشی موبایل Apple ظرفیت 128 گیگ',
+            source_text='گوشی موبایل Apple ظرفیت 128 گیگ',
+            candidate_title='گوشی موبایل اپل ظرفیت 128 گیگ',
+            candidate_text='گوشی موبایل اپل ظرفیت 128 گیگ',
+            source_family='digital',
+            candidate_family='digital',
+        )
+
+        self.assertNotIn('semantic_brand_mismatch', comparison.blocker_reasons)
+        self.assertEqual(comparison.details['source']['brands'], ['Apple'])
+        self.assertEqual(comparison.details['candidate']['brands'], ['Apple'])
+
+    def test_home_appliance_brand_persian_english_mismatch(self):
+        comparison = compare_semantic_cues(
+            source_title='تلویزیون ال جی 55 اینچ',
+            source_text='تلویزیون ال جی 55 اینچ',
+            candidate_title='تلویزیون Samsung 55 اینچ',
+            candidate_text='تلویزیون Samsung 55 اینچ',
+            source_family='home_appliance',
+            candidate_family='home_appliance',
+        )
+
+        self.assertIn('semantic_brand_mismatch', comparison.blocker_reasons)
+        evidence = [row for row in comparison.evidence if row['reason_code'] == 'semantic_brand_mismatch'][0]
+        self.assertEqual(evidence['source']['values'], ['LG'])
+        self.assertEqual(evidence['candidate']['values'], ['Samsung'])
+
+    def test_digital_brand_mismatch(self):
+        comparison = compare_semantic_cues(
+            source_title='گوشی موبایل Apple ظرفیت 128 گیگ',
+            source_text='گوشی موبایل Apple ظرفیت 128 گیگ',
+            candidate_title='گوشی موبایل سامسونگ ظرفیت 128 گیگ',
+            candidate_text='گوشی موبایل سامسونگ ظرفیت 128 گیگ',
+            source_family='digital',
+            candidate_family='digital',
+        )
+
+        self.assertIn('semantic_brand_mismatch', comparison.blocker_reasons)
+
     def test_package_and_compartment_mismatch(self):
         self.assertBlocked('لوبیا چیتی بسته 10 عددی', 'لوبیا چیتی بسته 15 عددی', 'semantic_package_count_mismatch')
         self.assertBlocked('نظم دهنده کیف مدل 8 خانه', 'نظم دهنده کیف مدل 16 خانه', 'semantic_compartment_count_mismatch')

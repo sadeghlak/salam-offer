@@ -1,6 +1,8 @@
 import re
 from dataclasses import dataclass, field
 
+from .brand_catalog import detect_brands
+
 
 PERSIAN_DIGITS = str.maketrans('۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789')
 
@@ -161,18 +163,20 @@ def detect_product_roles(text):
     return roles
 
 
-def extract_cues(title, text=''):
+def extract_cues(title, text='', families=None):
     title_norm = normalize_text(title)
     full_text = normalize_text(' | '.join([title or '', text or '']))
     title_token_text = normalize_for_tokens(title)
     full_token_text = normalize_for_tokens(' | '.join([title or '', text or '']))
+    brands = set(alias_hits(full_token_text, BRAND_ALIASES))
+    brands.update(detect_brands(full_token_text, families=families).keys())
     return {
         'is_honey': 'عسل' in full_text,
         'honey_types': sorted(alias_hits(full_text, HONEY_TYPES)),
         'honey_claims': sorted(alias_hits(full_text, HONEY_CLAIMS)),
         'honey_sucrose_values': sorted(extract_sucrose_values(full_text)),
         'fish_types': sorted(alias_hits(full_text, FISH_TYPES)),
-        'brands': sorted(alias_hits(full_token_text, BRAND_ALIASES)),
+        'brands': sorted(brands),
         'dimensions': sorted(extract_dimensions(title_norm)),
         'capacities': sorted(extract_capacities(title_norm)),
         'wattages': sorted(extract_wattages(title_norm)),
@@ -234,8 +238,9 @@ def compare_semantic_cues(
     source_family='',
     candidate_family='',
 ):
-    source = extract_cues(source_title, source_text)
-    candidate = extract_cues(candidate_title, candidate_text)
+    cue_families = {source_family or '', candidate_family or ''} - {''}
+    source = extract_cues(source_title, source_text, families=cue_families)
+    candidate = extract_cues(candidate_title, candidate_text, families=cue_families)
     reasons = []
     evidence = []
 

@@ -1,0 +1,4522 @@
+[
+  {
+    "family": "digital",
+    "canonical_name": "Apple",
+    "english_name": "Apple",
+    "persian_name": "اپل",
+    "aliases": [
+      "Apple",
+      "اپل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Samsung",
+    "english_name": "Samsung",
+    "persian_name": "سامسونگ",
+    "aliases": [
+      "Samsung",
+      "سامسونگ"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Xiaomi",
+    "english_name": "Xiaomi",
+    "persian_name": "شیائومی",
+    "aliases": [
+      "Xiaomi",
+      "شیائومی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Huawei",
+    "english_name": "Huawei",
+    "persian_name": "هواوی",
+    "aliases": [
+      "Huawei",
+      "هواوی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Honor",
+    "english_name": "Honor",
+    "persian_name": "آنر",
+    "aliases": [
+      "Honor",
+      "آنر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nokia",
+    "english_name": "Nokia",
+    "persian_name": "نوکیا",
+    "aliases": [
+      "Nokia",
+      "نوکیا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Motorola",
+    "english_name": "Motorola",
+    "persian_name": "موتورولا",
+    "aliases": [
+      "Motorola",
+      "موتورولا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Google",
+    "english_name": "Google",
+    "persian_name": "گوگل",
+    "aliases": [
+      "Google",
+      "گوگل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "OnePlus",
+    "english_name": "OnePlus",
+    "persian_name": "وان پلاس",
+    "aliases": [
+      "OnePlus",
+      "وان پلاس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Realme",
+    "english_name": "Realme",
+    "persian_name": "ریلمی",
+    "aliases": [
+      "Realme",
+      "ریلمی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Oppo",
+    "english_name": "Oppo",
+    "persian_name": "اوپو",
+    "aliases": [
+      "Oppo",
+      "اوپو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Vivo",
+    "english_name": "Vivo",
+    "persian_name": "ویوو",
+    "aliases": [
+      "Vivo",
+      "ویوو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nothing",
+    "english_name": "Nothing",
+    "persian_name": "ناتینگ",
+    "aliases": [
+      "Nothing",
+      "ناتینگ"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Asus",
+    "english_name": "Asus",
+    "persian_name": "ایسوس",
+    "aliases": [
+      "Asus",
+      "ایسوس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sony",
+    "english_name": "Sony",
+    "persian_name": "سونی",
+    "aliases": [
+      "Sony",
+      "سونی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Lenovo",
+    "english_name": "Lenovo",
+    "persian_name": "لنوو",
+    "aliases": [
+      "Lenovo",
+      "لنوو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "ZTE",
+    "english_name": "ZTE",
+    "persian_name": "زد تی ای",
+    "aliases": [
+      "ZTE",
+      "زد تی ای"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Meizu",
+    "english_name": "Meizu",
+    "persian_name": "میزو",
+    "aliases": [
+      "Meizu",
+      "میزو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Infinix",
+    "english_name": "Infinix",
+    "persian_name": "اینفینیکس",
+    "aliases": [
+      "Infinix",
+      "اینفینیکس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Tecno",
+    "english_name": "Tecno",
+    "persian_name": "تکنو",
+    "aliases": [
+      "Tecno",
+      "تکنو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "BlackBerry",
+    "english_name": "BlackBerry",
+    "persian_name": "بلک بری",
+    "aliases": [
+      "BlackBerry",
+      "بلک بری"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "HTC",
+    "english_name": "HTC",
+    "persian_name": "اچ تی سی",
+    "aliases": [
+      "HTC",
+      "اچ تی سی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Alcatel",
+    "english_name": "Alcatel",
+    "persian_name": "آلکاتل",
+    "aliases": [
+      "Alcatel",
+      "آلکاتل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Doogee",
+    "english_name": "Doogee",
+    "persian_name": "دوگی",
+    "aliases": [
+      "Doogee",
+      "دوگی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Ulefone",
+    "english_name": "Ulefone",
+    "persian_name": "یولفون",
+    "aliases": [
+      "Ulefone",
+      "یولفون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Cubot",
+    "english_name": "Cubot",
+    "persian_name": "کیوبوت",
+    "aliases": [
+      "Cubot",
+      "کیوبوت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Umidigi",
+    "english_name": "Umidigi",
+    "persian_name": "اومیدیجی",
+    "aliases": [
+      "Umidigi",
+      "اومیدیجی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Oukitel",
+    "english_name": "Oukitel",
+    "persian_name": "اوکیتل",
+    "aliases": [
+      "Oukitel",
+      "اوکیتل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Microsoft",
+    "english_name": "Microsoft",
+    "persian_name": "مایکروسافت",
+    "aliases": [
+      "Microsoft",
+      "مایکروسافت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Dell",
+    "english_name": "Dell",
+    "persian_name": "دل",
+    "aliases": [
+      "Dell",
+      "دل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "HP",
+    "english_name": "HP",
+    "persian_name": "اچ پی",
+    "aliases": [
+      "HP",
+      "اچ پی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Acer",
+    "english_name": "Acer",
+    "persian_name": "ایسر",
+    "aliases": [
+      "Acer",
+      "ایسر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "MSI",
+    "english_name": "MSI",
+    "persian_name": "ام اس آی",
+    "aliases": [
+      "MSI",
+      "ام اس آی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Razer",
+    "english_name": "Razer",
+    "persian_name": "ریزر",
+    "aliases": [
+      "Razer",
+      "ریزر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Alienware",
+    "english_name": "Alienware",
+    "persian_name": "الیِن ور",
+    "aliases": [
+      "Alienware",
+      "الیِن ور"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Gigabyte",
+    "english_name": "Gigabyte",
+    "persian_name": "گیگابایت",
+    "aliases": [
+      "Gigabyte",
+      "گیگابایت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Huawei MateBook",
+    "english_name": "Huawei MateBook",
+    "persian_name": "میت بوک",
+    "aliases": [
+      "Huawei MateBook",
+      "میت بوک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Framework",
+    "english_name": "Framework",
+    "persian_name": "فریم ورک",
+    "aliases": [
+      "Framework",
+      "فریم ورک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "LG",
+    "english_name": "LG",
+    "persian_name": "ال جی",
+    "aliases": [
+      "LG",
+      "ال جی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Intel",
+    "english_name": "Intel",
+    "persian_name": "اینتل",
+    "aliases": [
+      "Intel",
+      "اینتل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "AMD",
+    "english_name": "AMD",
+    "persian_name": "ای ام دی",
+    "aliases": [
+      "AMD",
+      "ای ام دی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "NVIDIA",
+    "english_name": "NVIDIA",
+    "persian_name": "انویدیا",
+    "aliases": [
+      "NVIDIA",
+      "انویدیا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Palit",
+    "english_name": "Palit",
+    "persian_name": "پالیت",
+    "aliases": [
+      "Palit",
+      "پالیت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Zotac",
+    "english_name": "Zotac",
+    "persian_name": "زوتک",
+    "aliases": [
+      "Zotac",
+      "زوتک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sapphire",
+    "english_name": "Sapphire",
+    "persian_name": "سافایر",
+    "aliases": [
+      "Sapphire",
+      "سافایر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "PowerColor",
+    "english_name": "PowerColor",
+    "persian_name": "پاورکالر",
+    "aliases": [
+      "PowerColor",
+      "پاورکالر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "XFX",
+    "english_name": "XFX",
+    "persian_name": "ایکس اف ایکس",
+    "aliases": [
+      "XFX",
+      "ایکس اف ایکس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Asrock",
+    "english_name": "Asrock",
+    "persian_name": "ازراک",
+    "aliases": [
+      "Asrock",
+      "ازراک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Biostar",
+    "english_name": "Biostar",
+    "persian_name": "بایواستار",
+    "aliases": [
+      "Biostar",
+      "بایواستار"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "EVGA",
+    "english_name": "EVGA",
+    "persian_name": "ای وی جی ای",
+    "aliases": [
+      "EVGA",
+      "ای وی جی ای"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Corsair",
+    "english_name": "Corsair",
+    "persian_name": "کورسیر",
+    "aliases": [
+      "Corsair",
+      "کورسیر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Kingston",
+    "english_name": "Kingston",
+    "persian_name": "کینگستون",
+    "aliases": [
+      "Kingston",
+      "کینگستون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "ADATA",
+    "english_name": "ADATA",
+    "persian_name": "ای دیتا",
+    "aliases": [
+      "ADATA",
+      "ای دیتا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "TeamGroup",
+    "english_name": "TeamGroup",
+    "persian_name": "تیم گروپ",
+    "aliases": [
+      "TeamGroup",
+      "تیم گروپ"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Crucial",
+    "english_name": "Crucial",
+    "persian_name": "کروشیال",
+    "aliases": [
+      "Crucial",
+      "کروشیال"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Western Digital",
+    "english_name": "Western Digital",
+    "persian_name": "وسترن دیجیتال",
+    "aliases": [
+      "Western Digital",
+      "وسترن دیجیتال"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Seagate",
+    "english_name": "Seagate",
+    "persian_name": "سیگیت",
+    "aliases": [
+      "Seagate",
+      "سیگیت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Toshiba",
+    "english_name": "Toshiba",
+    "persian_name": "توشیبا",
+    "aliases": [
+      "Toshiba",
+      "توشیبا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "SanDisk",
+    "english_name": "SanDisk",
+    "persian_name": "سن دیسک",
+    "aliases": [
+      "SanDisk",
+      "سن دیسک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Lexar",
+    "english_name": "Lexar",
+    "persian_name": "لکسر",
+    "aliases": [
+      "Lexar",
+      "لکسر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "PNY",
+    "english_name": "PNY",
+    "persian_name": "پی ان وای",
+    "aliases": [
+      "PNY",
+      "پی ان وای"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Patriot",
+    "english_name": "Patriot",
+    "persian_name": "پاتریوت",
+    "aliases": [
+      "Patriot",
+      "پاتریوت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Silicon Power",
+    "english_name": "Silicon Power",
+    "persian_name": "سیلیکون پاور",
+    "aliases": [
+      "Silicon Power",
+      "سیلیکون پاور"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Transcend",
+    "english_name": "Transcend",
+    "persian_name": "ترنسند",
+    "aliases": [
+      "Transcend",
+      "ترنسند"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Apacer",
+    "english_name": "Apacer",
+    "persian_name": "اپیسر",
+    "aliases": [
+      "Apacer",
+      "اپیسر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Verbatim",
+    "english_name": "Verbatim",
+    "persian_name": "ورباتیم",
+    "aliases": [
+      "Verbatim",
+      "ورباتیم"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Netac",
+    "english_name": "Netac",
+    "persian_name": "نتک",
+    "aliases": [
+      "Netac",
+      "نتک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Dahua",
+    "english_name": "Dahua",
+    "persian_name": "داهوا",
+    "aliases": [
+      "Dahua",
+      "داهوا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Hikvision",
+    "english_name": "Hikvision",
+    "persian_name": "هایک ویژن",
+    "aliases": [
+      "Hikvision",
+      "هایک ویژن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Canon",
+    "english_name": "Canon",
+    "persian_name": "کانن",
+    "aliases": [
+      "Canon",
+      "کانن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nikon",
+    "english_name": "Nikon",
+    "persian_name": "نیکون",
+    "aliases": [
+      "Nikon",
+      "نیکون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Fujifilm",
+    "english_name": "Fujifilm",
+    "persian_name": "فوجی فیلم",
+    "aliases": [
+      "Fujifilm",
+      "فوجی فیلم"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Panasonic",
+    "english_name": "Panasonic",
+    "persian_name": "پاناسونیک",
+    "aliases": [
+      "Panasonic",
+      "پاناسونیک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Leica",
+    "english_name": "Leica",
+    "persian_name": "لایکا",
+    "aliases": [
+      "Leica",
+      "لایکا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "GoPro",
+    "english_name": "GoPro",
+    "persian_name": "گوپرو",
+    "aliases": [
+      "GoPro",
+      "گوپرو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "DJI",
+    "english_name": "DJI",
+    "persian_name": "دی جی آی",
+    "aliases": [
+      "DJI",
+      "دی جی آی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Insta360",
+    "english_name": "Insta360",
+    "persian_name": "اینستا 360",
+    "aliases": [
+      "Insta360",
+      "اینستا 360"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sigma",
+    "english_name": "Sigma",
+    "persian_name": "سیگما",
+    "aliases": [
+      "Sigma",
+      "سیگما"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Tamron",
+    "english_name": "Tamron",
+    "persian_name": "تمرون",
+    "aliases": [
+      "Tamron",
+      "تمرون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "BenQ",
+    "english_name": "BenQ",
+    "persian_name": "بنکیو",
+    "aliases": [
+      "BenQ",
+      "بنکیو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "ViewSonic",
+    "english_name": "ViewSonic",
+    "persian_name": "ویوسونیک",
+    "aliases": [
+      "ViewSonic",
+      "ویوسونیک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "AOC",
+    "english_name": "AOC",
+    "persian_name": "ای او سی",
+    "aliases": [
+      "AOC",
+      "ای او سی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Philips",
+    "english_name": "Philips",
+    "persian_name": "فیلیپس",
+    "aliases": [
+      "Philips",
+      "فیلیپس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "LG UltraGear",
+    "english_name": "LG UltraGear",
+    "persian_name": "ال جی اولتراگیر",
+    "aliases": [
+      "LG UltraGear",
+      "ال جی اولتراگیر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Cooler Master",
+    "english_name": "Cooler Master",
+    "persian_name": "کولر مستر",
+    "aliases": [
+      "Cooler Master",
+      "کولر مستر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "DeepCool",
+    "english_name": "DeepCool",
+    "persian_name": "دیپ کول",
+    "aliases": [
+      "DeepCool",
+      "دیپ کول"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Thermaltake",
+    "english_name": "Thermaltake",
+    "persian_name": "ترمالتیک",
+    "aliases": [
+      "Thermaltake",
+      "ترمالتیک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "NZXT",
+    "english_name": "NZXT",
+    "persian_name": "ان زد ایکس تی",
+    "aliases": [
+      "NZXT",
+      "ان زد ایکس تی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Antec",
+    "english_name": "Antec",
+    "persian_name": "انتک",
+    "aliases": [
+      "Antec",
+      "انتک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Lian Li",
+    "english_name": "Lian Li",
+    "persian_name": "لیان لی",
+    "aliases": [
+      "Lian Li",
+      "لیان لی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Fractal Design",
+    "english_name": "Fractal Design",
+    "persian_name": "فرکتال دیزاین",
+    "aliases": [
+      "Fractal Design",
+      "فرکتال دیزاین"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Logitech",
+    "english_name": "Logitech",
+    "persian_name": "لاجیتک",
+    "aliases": [
+      "Logitech",
+      "لاجیتک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "RAPOO",
+    "english_name": "RAPOO",
+    "persian_name": "رپو",
+    "aliases": [
+      "RAPOO",
+      "رپو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Redragon",
+    "english_name": "Redragon",
+    "persian_name": "ردراگون",
+    "aliases": [
+      "Redragon",
+      "ردراگون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "SteelSeries",
+    "english_name": "SteelSeries",
+    "persian_name": "استیل سریز",
+    "aliases": [
+      "SteelSeries",
+      "استیل سریز"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "HyperX",
+    "english_name": "HyperX",
+    "persian_name": "هایپر ایکس",
+    "aliases": [
+      "HyperX",
+      "هایپر ایکس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Glorious",
+    "english_name": "Glorious",
+    "persian_name": "گلوریوس",
+    "aliases": [
+      "Glorious",
+      "گلوریوس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Roccat",
+    "english_name": "Roccat",
+    "persian_name": "روکات",
+    "aliases": [
+      "Roccat",
+      "روکات"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Keychron",
+    "english_name": "Keychron",
+    "persian_name": "کی‌کرون",
+    "aliases": [
+      "Keychron",
+      "کی‌کرون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "A4Tech",
+    "english_name": "A4Tech",
+    "persian_name": "ای فورتک",
+    "aliases": [
+      "A4Tech",
+      "ای فورتک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Bloody",
+    "english_name": "Bloody",
+    "persian_name": "بلادی",
+    "aliases": [
+      "Bloody",
+      "بلادی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Green",
+    "english_name": "Green",
+    "persian_name": "گرین",
+    "aliases": [
+      "Green",
+      "گرین"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "TSCO",
+    "english_name": "TSCO",
+    "persian_name": "تسکو",
+    "aliases": [
+      "TSCO",
+      "تسکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Farassoo",
+    "english_name": "Farassoo",
+    "persian_name": "فراسو",
+    "aliases": [
+      "Farassoo",
+      "فراسو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "XP Product",
+    "english_name": "XP Product",
+    "persian_name": "ایکس پی پروداکت",
+    "aliases": [
+      "XP Product",
+      "ایکس پی پروداکت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Apple Watch",
+    "english_name": "Apple Watch",
+    "persian_name": "اپل واچ",
+    "aliases": [
+      "Apple Watch",
+      "اپل واچ"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Garmin",
+    "english_name": "Garmin",
+    "persian_name": "گارمین",
+    "aliases": [
+      "Garmin",
+      "گارمین"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Amazfit",
+    "english_name": "Amazfit",
+    "persian_name": "امیزفیت",
+    "aliases": [
+      "Amazfit",
+      "امیزفیت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Suunto",
+    "english_name": "Suunto",
+    "persian_name": "سونتو",
+    "aliases": [
+      "Suunto",
+      "سونتو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Haylou",
+    "english_name": "Haylou",
+    "persian_name": "هایلو",
+    "aliases": [
+      "Haylou",
+      "هایلو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "QCY",
+    "english_name": "QCY",
+    "persian_name": "کیو سی وای",
+    "aliases": [
+      "QCY",
+      "کیو سی وای"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Anker",
+    "english_name": "Anker",
+    "persian_name": "انکر",
+    "aliases": [
+      "Anker",
+      "انکر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Baseus",
+    "english_name": "Baseus",
+    "persian_name": "باسئوس",
+    "aliases": [
+      "Baseus",
+      "باسئوس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Ugreen",
+    "english_name": "Ugreen",
+    "persian_name": "یوگرین",
+    "aliases": [
+      "Ugreen",
+      "یوگرین"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Mcdodo",
+    "english_name": "Mcdodo",
+    "persian_name": "مک دودو",
+    "aliases": [
+      "Mcdodo",
+      "مک دودو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Belkin",
+    "english_name": "Belkin",
+    "persian_name": "بلکین",
+    "aliases": [
+      "Belkin",
+      "بلکین"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Spigen",
+    "english_name": "Spigen",
+    "persian_name": "اسپیگن",
+    "aliases": [
+      "Spigen",
+      "اسپیگن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "JBL",
+    "english_name": "JBL",
+    "persian_name": "جی بی ال",
+    "aliases": [
+      "JBL",
+      "جی بی ال"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sony Audio",
+    "english_name": "Sony Audio",
+    "persian_name": "سونی",
+    "aliases": [
+      "Sony Audio",
+      "سونی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Bose",
+    "english_name": "Bose",
+    "persian_name": "بوز",
+    "aliases": [
+      "Bose",
+      "بوز"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sennheiser",
+    "english_name": "Sennheiser",
+    "persian_name": "سنهایزر",
+    "aliases": [
+      "Sennheiser",
+      "سنهایزر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Audio-Technica",
+    "english_name": "Audio-Technica",
+    "persian_name": "آدیو تکنیکا",
+    "aliases": [
+      "Audio-Technica",
+      "آدیو تکنیکا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Shure",
+    "english_name": "Shure",
+    "persian_name": "شور",
+    "aliases": [
+      "Shure",
+      "شور"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "AKG",
+    "english_name": "AKG",
+    "persian_name": "ای کی جی",
+    "aliases": [
+      "AKG",
+      "ای کی جی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Marshall",
+    "english_name": "Marshall",
+    "persian_name": "مارشال",
+    "aliases": [
+      "Marshall",
+      "مارشال"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Bang & Olufsen",
+    "english_name": "Bang & Olufsen",
+    "persian_name": "بنگ اند اولافسن",
+    "aliases": [
+      "Bang & Olufsen",
+      "بنگ اند اولافسن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Edifier",
+    "english_name": "Edifier",
+    "persian_name": "ادیفایر",
+    "aliases": [
+      "Edifier",
+      "ادیفایر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Creative",
+    "english_name": "Creative",
+    "persian_name": "کریتیو",
+    "aliases": [
+      "Creative",
+      "کریتیو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Harman Kardon",
+    "english_name": "Harman Kardon",
+    "persian_name": "هارمن کاردن",
+    "aliases": [
+      "Harman Kardon",
+      "هارمن کاردن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Beats",
+    "english_name": "Beats",
+    "persian_name": "بیتس",
+    "aliases": [
+      "Beats",
+      "بیتس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Skullcandy",
+    "english_name": "Skullcandy",
+    "persian_name": "اسکال کندی",
+    "aliases": [
+      "Skullcandy",
+      "اسکال کندی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "XPG",
+    "english_name": "XPG",
+    "persian_name": "ایکس پی جی",
+    "aliases": [
+      "XPG",
+      "ایکس پی جی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Colorful",
+    "english_name": "Colorful",
+    "persian_name": "کالر فول",
+    "aliases": [
+      "Colorful",
+      "کالر فول"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Gainward",
+    "english_name": "Gainward",
+    "persian_name": "گین وارد",
+    "aliases": [
+      "Gainward",
+      "گین وارد"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Epson",
+    "english_name": "Epson",
+    "persian_name": "اپسون",
+    "aliases": [
+      "Epson",
+      "اپسون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Brother",
+    "english_name": "Brother",
+    "persian_name": "برادر",
+    "aliases": [
+      "Brother",
+      "برادر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Kyocera",
+    "english_name": "Kyocera",
+    "persian_name": "کیوسرا",
+    "aliases": [
+      "Kyocera",
+      "کیوسرا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Ricoh",
+    "english_name": "Ricoh",
+    "persian_name": "ریکو",
+    "aliases": [
+      "Ricoh",
+      "ریکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Xerox",
+    "english_name": "Xerox",
+    "persian_name": "زیراکس",
+    "aliases": [
+      "Xerox",
+      "زیراکس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Pantum",
+    "english_name": "Pantum",
+    "persian_name": "پنتوم",
+    "aliases": [
+      "Pantum",
+      "پنتوم"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "TP-Link",
+    "english_name": "TP-Link",
+    "persian_name": "تی پی لینک",
+    "aliases": [
+      "TP-Link",
+      "تی پی لینک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "D-Link",
+    "english_name": "D-Link",
+    "persian_name": "دی لینک",
+    "aliases": [
+      "D-Link",
+      "دی لینک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Tenda",
+    "english_name": "Tenda",
+    "persian_name": "تندا",
+    "aliases": [
+      "Tenda",
+      "تندا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "MikroTik",
+    "english_name": "MikroTik",
+    "persian_name": "میکروتیک",
+    "aliases": [
+      "MikroTik",
+      "میکروتیک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Cisco",
+    "english_name": "Cisco",
+    "persian_name": "سیسکو",
+    "aliases": [
+      "Cisco",
+      "سیسکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Ubiquiti",
+    "english_name": "Ubiquiti",
+    "persian_name": "یوبیکویتی",
+    "aliases": [
+      "Ubiquiti",
+      "یوبیکویتی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Mercusys",
+    "english_name": "Mercusys",
+    "persian_name": "مرکوسیس",
+    "aliases": [
+      "Mercusys",
+      "مرکوسیس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Netgear",
+    "english_name": "Netgear",
+    "persian_name": "نت گیر",
+    "aliases": [
+      "Netgear",
+      "نت گیر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Linksys",
+    "english_name": "Linksys",
+    "persian_name": "لینکسیس",
+    "aliases": [
+      "Linksys",
+      "لینکسیس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Synology",
+    "english_name": "Synology",
+    "persian_name": "سینولوژی",
+    "aliases": [
+      "Synology",
+      "سینولوژی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "QNAP",
+    "english_name": "QNAP",
+    "persian_name": "کیونپ",
+    "aliases": [
+      "QNAP",
+      "کیونپ"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Yealink",
+    "english_name": "Yealink",
+    "persian_name": "یالینک",
+    "aliases": [
+      "Yealink",
+      "یالینک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Grandstream",
+    "english_name": "Grandstream",
+    "persian_name": "گرنداستریم",
+    "aliases": [
+      "Grandstream",
+      "گرنداستریم"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Aruba",
+    "english_name": "Aruba",
+    "persian_name": "آروبا",
+    "aliases": [
+      "Aruba",
+      "آروبا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Fortinet",
+    "english_name": "Fortinet",
+    "persian_name": "فورتی نت",
+    "aliases": [
+      "Fortinet",
+      "فورتی نت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Juniper",
+    "english_name": "Juniper",
+    "persian_name": "جونیپر",
+    "aliases": [
+      "Juniper",
+      "جونیپر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sophos",
+    "english_name": "Sophos",
+    "persian_name": "سوفوس",
+    "aliases": [
+      "Sophos",
+      "سوفوس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Casio",
+    "english_name": "Casio",
+    "persian_name": "کاسیو",
+    "aliases": [
+      "Casio",
+      "کاسیو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Texas Instruments",
+    "english_name": "Texas Instruments",
+    "persian_name": "تگزاس اینسترومنت",
+    "aliases": [
+      "Texas Instruments",
+      "تگزاس اینسترومنت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Wacom",
+    "english_name": "Wacom",
+    "persian_name": "واکوم",
+    "aliases": [
+      "Wacom",
+      "واکوم"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Huion",
+    "english_name": "Huion",
+    "persian_name": "هویون",
+    "aliases": [
+      "Huion",
+      "هویون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "XP-Pen",
+    "english_name": "XP-Pen",
+    "persian_name": "ایکس پی پن",
+    "aliases": [
+      "XP-Pen",
+      "ایکس پی پن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Elgato",
+    "english_name": "Elgato",
+    "persian_name": "الگاتو",
+    "aliases": [
+      "Elgato",
+      "الگاتو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "AverMedia",
+    "english_name": "AverMedia",
+    "persian_name": "اورمدیا",
+    "aliases": [
+      "AverMedia",
+      "اورمدیا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "8BitDo",
+    "english_name": "8BitDo",
+    "persian_name": "ایت بیت دو",
+    "aliases": [
+      "8BitDo",
+      "ایت بیت دو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nintendo",
+    "english_name": "Nintendo",
+    "persian_name": "نینتندو",
+    "aliases": [
+      "Nintendo",
+      "نینتندو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sony PlayStation",
+    "english_name": "Sony PlayStation",
+    "persian_name": "پلی استیشن",
+    "aliases": [
+      "Sony PlayStation",
+      "پلی استیشن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Xbox",
+    "english_name": "Xbox",
+    "persian_name": "ایکس باکس",
+    "aliases": [
+      "Xbox",
+      "ایکس باکس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Valve",
+    "english_name": "Valve",
+    "persian_name": "ولو",
+    "aliases": [
+      "Valve",
+      "ولو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Meta",
+    "english_name": "Meta",
+    "persian_name": "متا",
+    "aliases": [
+      "Meta",
+      "متا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "HTC Vive",
+    "english_name": "HTC Vive",
+    "persian_name": "اچ تی سی وایو",
+    "aliases": [
+      "HTC Vive",
+      "اچ تی سی وایو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Pico",
+    "english_name": "Pico",
+    "persian_name": "پیکو",
+    "aliases": [
+      "Pico",
+      "پیکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "TCL Mobile",
+    "english_name": "TCL Mobile",
+    "persian_name": "تی سی ال",
+    "aliases": [
+      "TCL Mobile",
+      "تی سی ال"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Blackview",
+    "english_name": "Blackview",
+    "persian_name": "بلک ویو",
+    "aliases": [
+      "Blackview",
+      "بلک ویو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "POCO",
+    "english_name": "POCO",
+    "persian_name": "پوکو",
+    "aliases": [
+      "POCO",
+      "پوکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "iLife",
+    "english_name": "iLife",
+    "persian_name": "آی لایف",
+    "aliases": [
+      "iLife",
+      "آی لایف"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Roborock",
+    "english_name": "Roborock",
+    "persian_name": "روبوراک",
+    "aliases": [
+      "Roborock",
+      "روبوراک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Ecovacs",
+    "english_name": "Ecovacs",
+    "persian_name": "اکووکس",
+    "aliases": [
+      "Ecovacs",
+      "اکووکس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Dreame",
+    "english_name": "Dreame",
+    "persian_name": "دریمی",
+    "aliases": [
+      "Dreame",
+      "دریمی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Narwal",
+    "english_name": "Narwal",
+    "persian_name": "ناروال",
+    "aliases": [
+      "Narwal",
+      "ناروال"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Tineco",
+    "english_name": "Tineco",
+    "persian_name": "تینکو",
+    "aliases": [
+      "Tineco",
+      "تینکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nothing CMF",
+    "english_name": "Nothing CMF",
+    "persian_name": "سی ام اف",
+    "aliases": [
+      "Nothing CMF",
+      "سی ام اف"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "CMF",
+    "english_name": "CMF",
+    "persian_name": "سی ام اف",
+    "aliases": [
+      "CMF",
+      "سی ام اف"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Oraimo",
+    "english_name": "Oraimo",
+    "persian_name": "اورایمو",
+    "aliases": [
+      "Oraimo",
+      "اورایمو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "itel",
+    "english_name": "itel",
+    "persian_name": "آیتل",
+    "aliases": [
+      "itel",
+      "آیتل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nubia",
+    "english_name": "Nubia",
+    "persian_name": "نوبیا",
+    "aliases": [
+      "Nubia",
+      "نوبیا"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Redmagic",
+    "english_name": "Redmagic",
+    "persian_name": "ردمجیک",
+    "aliases": [
+      "Redmagic",
+      "ردمجیک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "ROG",
+    "english_name": "ROG",
+    "persian_name": "آر او جی",
+    "aliases": [
+      "ROG",
+      "آر او جی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Victus",
+    "english_name": "Victus",
+    "persian_name": "ویکتوس",
+    "aliases": [
+      "Victus",
+      "ویکتوس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "OMEN",
+    "english_name": "OMEN",
+    "persian_name": "اومن",
+    "aliases": [
+      "OMEN",
+      "اومن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "ThinkPad",
+    "english_name": "ThinkPad",
+    "persian_name": "تینک پد",
+    "aliases": [
+      "ThinkPad",
+      "تینک پد"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "IdeaPad",
+    "english_name": "IdeaPad",
+    "persian_name": "آیدیاپد",
+    "aliases": [
+      "IdeaPad",
+      "آیدیاپد"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Legion",
+    "english_name": "Legion",
+    "persian_name": "لژیون",
+    "aliases": [
+      "Legion",
+      "لژیون"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Predator",
+    "english_name": "Predator",
+    "persian_name": "پردیتور",
+    "aliases": [
+      "Predator",
+      "پردیتور"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Nitro",
+    "english_name": "Nitro",
+    "persian_name": "نیترو",
+    "aliases": [
+      "Nitro",
+      "نیترو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Zenbook",
+    "english_name": "Zenbook",
+    "persian_name": "زنبوک",
+    "aliases": [
+      "Zenbook",
+      "زنبوک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Vivobook",
+    "english_name": "Vivobook",
+    "persian_name": "ویووبوک",
+    "aliases": [
+      "Vivobook",
+      "ویووبوک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Surface",
+    "english_name": "Surface",
+    "persian_name": "سرفیس",
+    "aliases": [
+      "Surface",
+      "سرفیس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "iQOO",
+    "english_name": "iQOO",
+    "persian_name": "آیکو",
+    "aliases": [
+      "iQOO",
+      "آیکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Redmi",
+    "english_name": "Redmi",
+    "persian_name": "ردمی",
+    "aliases": [
+      "Redmi",
+      "ردمی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Mi",
+    "english_name": "Mi",
+    "persian_name": "می",
+    "aliases": [
+      "Mi",
+      "می"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Pisen",
+    "english_name": "Pisen",
+    "persian_name": "پیسن",
+    "aliases": [
+      "Pisen",
+      "پیسن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Romoss",
+    "english_name": "Romoss",
+    "persian_name": "روموس",
+    "aliases": [
+      "Romoss",
+      "روموس"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Energizer",
+    "english_name": "Energizer",
+    "persian_name": "انرجایزر",
+    "aliases": [
+      "Energizer",
+      "انرجایزر"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Duracell",
+    "english_name": "Duracell",
+    "persian_name": "دوراسل",
+    "aliases": [
+      "Duracell",
+      "دوراسل"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Vention",
+    "english_name": "Vention",
+    "persian_name": "ونشن",
+    "aliases": [
+      "Vention",
+      "ونشن"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Orico",
+    "english_name": "Orico",
+    "persian_name": "اوریکو",
+    "aliases": [
+      "Orico",
+      "اوریکو"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Sabrent",
+    "english_name": "Sabrent",
+    "persian_name": "سابرنت",
+    "aliases": [
+      "Sabrent",
+      "سابرنت"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "UGREEN Nexode",
+    "english_name": "UGREEN Nexode",
+    "persian_name": "یوگرین نکسود",
+    "aliases": [
+      "UGREEN Nexode",
+      "یوگرین نکسود"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Choetech",
+    "english_name": "Choetech",
+    "persian_name": "چویتک",
+    "aliases": [
+      "Choetech",
+      "چویتک"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "AUKEY",
+    "english_name": "AUKEY",
+    "persian_name": "آکی",
+    "aliases": [
+      "AUKEY",
+      "آکی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Mophie",
+    "english_name": "Mophie",
+    "persian_name": "موفی",
+    "aliases": [
+      "Mophie",
+      "موفی"
+    ]
+  },
+  {
+    "family": "digital",
+    "canonical_name": "Zendure",
+    "english_name": "Zendure",
+    "persian_name": "زندور",
+    "aliases": [
+      "Zendure",
+      "زندور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Samsung",
+    "english_name": "Samsung",
+    "persian_name": "سامسونگ",
+    "aliases": [
+      "Samsung",
+      "سامسونگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "LG",
+    "english_name": "LG",
+    "persian_name": "ال جی",
+    "aliases": [
+      "LG",
+      "ال جی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bosch",
+    "english_name": "Bosch",
+    "persian_name": "بوش",
+    "aliases": [
+      "Bosch",
+      "بوش"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Siemens",
+    "english_name": "Siemens",
+    "persian_name": "زیمنس",
+    "aliases": [
+      "Siemens",
+      "زیمنس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Miele",
+    "english_name": "Miele",
+    "persian_name": "میله",
+    "aliases": [
+      "Miele",
+      "میله"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Whirlpool",
+    "english_name": "Whirlpool",
+    "persian_name": "ویرپول",
+    "aliases": [
+      "Whirlpool",
+      "ویرپول"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "KitchenAid",
+    "english_name": "KitchenAid",
+    "persian_name": "کیتچن اید",
+    "aliases": [
+      "KitchenAid",
+      "کیتچن اید"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Maytag",
+    "english_name": "Maytag",
+    "persian_name": "می تگ",
+    "aliases": [
+      "Maytag",
+      "می تگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "GE Appliances",
+    "english_name": "GE Appliances",
+    "persian_name": "جنرال الکتریک",
+    "aliases": [
+      "GE Appliances",
+      "جنرال الکتریک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Haier",
+    "english_name": "Haier",
+    "persian_name": "هایر",
+    "aliases": [
+      "Haier",
+      "هایر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hisense",
+    "english_name": "Hisense",
+    "persian_name": "هایسنس",
+    "aliases": [
+      "Hisense",
+      "هایسنس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "TCL",
+    "english_name": "TCL",
+    "persian_name": "تی سی ال",
+    "aliases": [
+      "TCL",
+      "تی سی ال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Panasonic",
+    "english_name": "Panasonic",
+    "persian_name": "پاناسونیک",
+    "aliases": [
+      "Panasonic",
+      "پاناسونیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Sharp",
+    "english_name": "Sharp",
+    "persian_name": "شارپ",
+    "aliases": [
+      "Sharp",
+      "شارپ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hitachi",
+    "english_name": "Hitachi",
+    "persian_name": "هیتاچی",
+    "aliases": [
+      "Hitachi",
+      "هیتاچی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Toshiba",
+    "english_name": "Toshiba",
+    "persian_name": "توشیبا",
+    "aliases": [
+      "Toshiba",
+      "توشیبا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Mitsubishi Electric",
+    "english_name": "Mitsubishi Electric",
+    "persian_name": "میتسوبیشی الکتریک",
+    "aliases": [
+      "Mitsubishi Electric",
+      "میتسوبیشی الکتریک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Daikin",
+    "english_name": "Daikin",
+    "persian_name": "دایکین",
+    "aliases": [
+      "Daikin",
+      "دایکین"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Fujitsu",
+    "english_name": "Fujitsu",
+    "persian_name": "فوجیتسو",
+    "aliases": [
+      "Fujitsu",
+      "فوجیتسو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Electrolux",
+    "english_name": "Electrolux",
+    "persian_name": "الکترولوکس",
+    "aliases": [
+      "Electrolux",
+      "الکترولوکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "AEG",
+    "english_name": "AEG",
+    "persian_name": "آاگ",
+    "aliases": [
+      "AEG",
+      "آاگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Zanussi",
+    "english_name": "Zanussi",
+    "persian_name": "زانوسی",
+    "aliases": [
+      "Zanussi",
+      "زانوسی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Beko",
+    "english_name": "Beko",
+    "persian_name": "بکو",
+    "aliases": [
+      "Beko",
+      "بکو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Grundig",
+    "english_name": "Grundig",
+    "persian_name": "گروندیگ",
+    "aliases": [
+      "Grundig",
+      "گروندیگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Arcelik",
+    "english_name": "Arcelik",
+    "persian_name": "آرچلیک",
+    "aliases": [
+      "Arcelik",
+      "آرچلیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Vestel",
+    "english_name": "Vestel",
+    "persian_name": "وستل",
+    "aliases": [
+      "Vestel",
+      "وستل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Candy",
+    "english_name": "Candy",
+    "persian_name": "کندی",
+    "aliases": [
+      "Candy",
+      "کندی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hoover",
+    "english_name": "Hoover",
+    "persian_name": "هوور",
+    "aliases": [
+      "Hoover",
+      "هوور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Indesit",
+    "english_name": "Indesit",
+    "persian_name": "ایندزیت",
+    "aliases": [
+      "Indesit",
+      "ایندزیت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hotpoint",
+    "english_name": "Hotpoint",
+    "persian_name": "هات پوینت",
+    "aliases": [
+      "Hotpoint",
+      "هات پوینت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ariston",
+    "english_name": "Ariston",
+    "persian_name": "آریستون",
+    "aliases": [
+      "Ariston",
+      "آریستون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Smeg",
+    "english_name": "Smeg",
+    "persian_name": "اسمگ",
+    "aliases": [
+      "Smeg",
+      "اسمگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Gaggenau",
+    "english_name": "Gaggenau",
+    "persian_name": "گاگناو",
+    "aliases": [
+      "Gaggenau",
+      "گاگناو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Neff",
+    "english_name": "Neff",
+    "persian_name": "نف",
+    "aliases": [
+      "Neff",
+      "نف"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Frigidaire",
+    "english_name": "Frigidaire",
+    "persian_name": "فریجیدر",
+    "aliases": [
+      "Frigidaire",
+      "فریجیدر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Amana",
+    "english_name": "Amana",
+    "persian_name": "آمانا",
+    "aliases": [
+      "Amana",
+      "آمانا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "JennAir",
+    "english_name": "JennAir",
+    "persian_name": "جن ایر",
+    "aliases": [
+      "JennAir",
+      "جن ایر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Sub-Zero",
+    "english_name": "Sub-Zero",
+    "persian_name": "ساب زیرو",
+    "aliases": [
+      "Sub-Zero",
+      "ساب زیرو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Wolf",
+    "english_name": "Wolf",
+    "persian_name": "وولف",
+    "aliases": [
+      "Wolf",
+      "وولف"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Thermador",
+    "english_name": "Thermador",
+    "persian_name": "ترمادور",
+    "aliases": [
+      "Thermador",
+      "ترمادور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Fisher & Paykel",
+    "english_name": "Fisher & Paykel",
+    "persian_name": "فیشر اند پایکل",
+    "aliases": [
+      "Fisher & Paykel",
+      "فیشر اند پایکل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Breville",
+    "english_name": "Breville",
+    "persian_name": "برویل",
+    "aliases": [
+      "Breville",
+      "برویل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "DeLonghi",
+    "english_name": "DeLonghi",
+    "persian_name": "دلونگی",
+    "aliases": [
+      "DeLonghi",
+      "دلونگی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Kenwood",
+    "english_name": "Kenwood",
+    "persian_name": "کنوود",
+    "aliases": [
+      "Kenwood",
+      "کنوود"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Philips",
+    "english_name": "Philips",
+    "persian_name": "فیلیپس",
+    "aliases": [
+      "Philips",
+      "فیلیپس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Moulinex",
+    "english_name": "Moulinex",
+    "persian_name": "مولینکس",
+    "aliases": [
+      "Moulinex",
+      "مولینکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Tefal",
+    "english_name": "Tefal",
+    "persian_name": "تفال",
+    "aliases": [
+      "Tefal",
+      "تفال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Braun",
+    "english_name": "Braun",
+    "persian_name": "براون",
+    "aliases": [
+      "Braun",
+      "براون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Russell Hobbs",
+    "english_name": "Russell Hobbs",
+    "persian_name": "راسل هابز",
+    "aliases": [
+      "Russell Hobbs",
+      "راسل هابز"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Black+Decker",
+    "english_name": "Black+Decker",
+    "persian_name": "بلک اند دکر",
+    "aliases": [
+      "Black+Decker",
+      "بلک اند دکر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ninja",
+    "english_name": "Ninja",
+    "persian_name": "نینجا",
+    "aliases": [
+      "Ninja",
+      "نینجا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Dyson",
+    "english_name": "Dyson",
+    "persian_name": "دایسون",
+    "aliases": [
+      "Dyson",
+      "دایسون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Shark",
+    "english_name": "Shark",
+    "persian_name": "شارک",
+    "aliases": [
+      "Shark",
+      "شارک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Rowenta",
+    "english_name": "Rowenta",
+    "persian_name": "روونتا",
+    "aliases": [
+      "Rowenta",
+      "روونتا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Gorenje",
+    "english_name": "Gorenje",
+    "persian_name": "گورنیه",
+    "aliases": [
+      "Gorenje",
+      "گورنیه"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Liebherr",
+    "english_name": "Liebherr",
+    "persian_name": "لیبهر",
+    "aliases": [
+      "Liebherr",
+      "لیبهر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Asko",
+    "english_name": "Asko",
+    "persian_name": "اسکو",
+    "aliases": [
+      "Asko",
+      "اسکو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Viking",
+    "english_name": "Viking",
+    "persian_name": "وایکینگ",
+    "aliases": [
+      "Viking",
+      "وایکینگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Fagor",
+    "english_name": "Fagor",
+    "persian_name": "فاگور",
+    "aliases": [
+      "Fagor",
+      "فاگور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Mora",
+    "english_name": "Mora",
+    "persian_name": "مورا",
+    "aliases": [
+      "Mora",
+      "مورا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Blomberg",
+    "english_name": "Blomberg",
+    "persian_name": "بلومبرگ",
+    "aliases": [
+      "Blomberg",
+      "بلومبرگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Kuppersbusch",
+    "english_name": "Kuppersbusch",
+    "persian_name": "کوپرسبوش",
+    "aliases": [
+      "Kuppersbusch",
+      "کوپرسبوش"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bertazzoni",
+    "english_name": "Bertazzoni",
+    "persian_name": "برتازونی",
+    "aliases": [
+      "Bertazzoni",
+      "برتازونی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "La Germania",
+    "english_name": "La Germania",
+    "persian_name": "لا جرمانیا",
+    "aliases": [
+      "La Germania",
+      "لا جرمانیا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Daewoo",
+    "english_name": "Daewoo",
+    "persian_name": "دوو",
+    "aliases": [
+      "Daewoo",
+      "دوو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Midea",
+    "english_name": "Midea",
+    "persian_name": "مدیا",
+    "aliases": [
+      "Midea",
+      "مدیا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Aiwa",
+    "english_name": "Aiwa",
+    "persian_name": "آیوا",
+    "aliases": [
+      "Aiwa",
+      "آیوا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Akai",
+    "english_name": "Akai",
+    "persian_name": "آکای",
+    "aliases": [
+      "Akai",
+      "آکای"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "JVC",
+    "english_name": "JVC",
+    "persian_name": "جی وی سی",
+    "aliases": [
+      "JVC",
+      "جی وی سی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hyundai",
+    "english_name": "Hyundai",
+    "persian_name": "هیوندای",
+    "aliases": [
+      "Hyundai",
+      "هیوندای"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Arzum",
+    "english_name": "Arzum",
+    "persian_name": "آرزوم",
+    "aliases": [
+      "Arzum",
+      "آرزوم"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ariete",
+    "english_name": "Ariete",
+    "persian_name": "آریته",
+    "aliases": [
+      "Ariete",
+      "آریته"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Binatone",
+    "english_name": "Binatone",
+    "persian_name": "بیناتون",
+    "aliases": [
+      "Binatone",
+      "بیناتون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Blaupunkt",
+    "english_name": "Blaupunkt",
+    "persian_name": "بلائوپونکت",
+    "aliases": [
+      "Blaupunkt",
+      "بلائوپونکت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bomann",
+    "english_name": "Bomann",
+    "persian_name": "بومان",
+    "aliases": [
+      "Bomann",
+      "بومان"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Camry",
+    "english_name": "Camry",
+    "persian_name": "کمری",
+    "aliases": [
+      "Camry",
+      "کمری"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Clatronic",
+    "english_name": "Clatronic",
+    "persian_name": "کلاترونیک",
+    "aliases": [
+      "Clatronic",
+      "کلاترونیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Crown",
+    "english_name": "Crown",
+    "persian_name": "کرون",
+    "aliases": [
+      "Crown",
+      "کرون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Domo",
+    "english_name": "Domo",
+    "persian_name": "دومو",
+    "aliases": [
+      "Domo",
+      "دومو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Fakir",
+    "english_name": "Fakir",
+    "persian_name": "فکیر",
+    "aliases": [
+      "Fakir",
+      "فکیر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Finlux",
+    "english_name": "Finlux",
+    "persian_name": "فینلوکس",
+    "aliases": [
+      "Finlux",
+      "فینلوکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "First Austria",
+    "english_name": "First Austria",
+    "persian_name": "فرست اتریش",
+    "aliases": [
+      "First Austria",
+      "فرست اتریش"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Galanz",
+    "english_name": "Galanz",
+    "persian_name": "گالانز",
+    "aliases": [
+      "Galanz",
+      "گالانز"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Kaiser",
+    "english_name": "Kaiser",
+    "persian_name": "کایزر",
+    "aliases": [
+      "Kaiser",
+      "کایزر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Karcher",
+    "english_name": "Karcher",
+    "persian_name": "کارچر",
+    "aliases": [
+      "Karcher",
+      "کارچر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Krups",
+    "english_name": "Krups",
+    "persian_name": "کروپس",
+    "aliases": [
+      "Krups",
+      "کروپس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Lexical",
+    "english_name": "Lexical",
+    "persian_name": "لکسیکال",
+    "aliases": [
+      "Lexical",
+      "لکسیکال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Luxell",
+    "english_name": "Luxell",
+    "persian_name": "لوکسل",
+    "aliases": [
+      "Luxell",
+      "لوکسل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Medion",
+    "english_name": "Medion",
+    "persian_name": "مدیون",
+    "aliases": [
+      "Medion",
+      "مدیون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Nikai",
+    "english_name": "Nikai",
+    "persian_name": "نیکای",
+    "aliases": [
+      "Nikai",
+      "نیکای"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Oster",
+    "english_name": "Oster",
+    "persian_name": "استر",
+    "aliases": [
+      "Oster",
+      "استر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Princess",
+    "english_name": "Princess",
+    "persian_name": "پرنسس",
+    "aliases": [
+      "Princess",
+      "پرنسس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Rohnson",
+    "english_name": "Rohnson",
+    "persian_name": "رونسون",
+    "aliases": [
+      "Rohnson",
+      "رونسون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Royal",
+    "english_name": "Royal",
+    "persian_name": "رویال",
+    "aliases": [
+      "Royal",
+      "رویال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Severin",
+    "english_name": "Severin",
+    "persian_name": "سورین",
+    "aliases": [
+      "Severin",
+      "سورین"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Sinbo",
+    "english_name": "Sinbo",
+    "persian_name": "سینبو",
+    "aliases": [
+      "Sinbo",
+      "سینبو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Solac",
+    "english_name": "Solac",
+    "persian_name": "سولاک",
+    "aliases": [
+      "Solac",
+      "سولاک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Vitek",
+    "english_name": "Vitek",
+    "persian_name": "ویتک",
+    "aliases": [
+      "Vitek",
+      "ویتک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Westinghouse",
+    "english_name": "Westinghouse",
+    "persian_name": "وستینگهاوس",
+    "aliases": [
+      "Westinghouse",
+      "وستینگهاوس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Zelmer",
+    "english_name": "Zelmer",
+    "persian_name": "زلمر",
+    "aliases": [
+      "Zelmer",
+      "زلمر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Snowa",
+    "english_name": "Snowa",
+    "persian_name": "اسنوا",
+    "aliases": [
+      "Snowa",
+      "اسنوا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Pakshoma",
+    "english_name": "Pakshoma",
+    "persian_name": "پاکشوما",
+    "aliases": [
+      "Pakshoma",
+      "پاکشوما"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Emersun",
+    "english_name": "Emersun",
+    "persian_name": "امرسان",
+    "aliases": [
+      "Emersun",
+      "امرسان"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Pars Khazar",
+    "english_name": "Pars Khazar",
+    "persian_name": "پارس خزر",
+    "aliases": [
+      "Pars Khazar",
+      "پارس خزر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Aabsal",
+    "english_name": "Aabsal",
+    "persian_name": "آبسال",
+    "aliases": [
+      "Aabsal",
+      "آبسال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Electro Steel",
+    "english_name": "Electro Steel",
+    "persian_name": "الکترواستیل",
+    "aliases": [
+      "Electro Steel",
+      "الکترواستیل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Himalia",
+    "english_name": "Himalia",
+    "persian_name": "هیمالیا",
+    "aliases": [
+      "Himalia",
+      "هیمالیا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "GPlus",
+    "english_name": "GPlus",
+    "persian_name": "جی پلاس",
+    "aliases": [
+      "GPlus",
+      "جی پلاس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "X.Vision",
+    "english_name": "X.Vision",
+    "persian_name": "ایکس ویژن",
+    "aliases": [
+      "X.Vision",
+      "ایکس ویژن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "EastCool",
+    "english_name": "EastCool",
+    "persian_name": "ایستکول",
+    "aliases": [
+      "EastCool",
+      "ایستکول"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Tulips",
+    "english_name": "Tulips",
+    "persian_name": "تولیپس",
+    "aliases": [
+      "Tulips",
+      "تولیپس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Migel",
+    "english_name": "Migel",
+    "persian_name": "میگل",
+    "aliases": [
+      "Migel",
+      "میگل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Arj",
+    "english_name": "Arj",
+    "persian_name": "ارج",
+    "aliases": [
+      "Arj",
+      "ارج"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Azmayesh",
+    "english_name": "Azmayesh",
+    "persian_name": "آزمایش",
+    "aliases": [
+      "Azmayesh",
+      "آزمایش"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hardstone",
+    "english_name": "Hardstone",
+    "persian_name": "هاردستون",
+    "aliases": [
+      "Hardstone",
+      "هاردستون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bost",
+    "english_name": "Bost",
+    "persian_name": "بست",
+    "aliases": [
+      "Bost",
+      "بست"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Techno",
+    "english_name": "Techno",
+    "persian_name": "تکنو",
+    "aliases": [
+      "Techno",
+      "تکنو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Sakura",
+    "english_name": "Sakura",
+    "persian_name": "ساکورا",
+    "aliases": [
+      "Sakura",
+      "ساکورا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Orion",
+    "english_name": "Orion",
+    "persian_name": "اوریون",
+    "aliases": [
+      "Orion",
+      "اوریون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Conion",
+    "english_name": "Conion",
+    "persian_name": "کنیون",
+    "aliases": [
+      "Conion",
+      "کنیون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "National",
+    "english_name": "National",
+    "persian_name": "نشنال",
+    "aliases": [
+      "National",
+      "نشنال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "GoldStar",
+    "english_name": "GoldStar",
+    "persian_name": "گلد استار",
+    "aliases": [
+      "GoldStar",
+      "گلد استار"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "RCA",
+    "english_name": "RCA",
+    "persian_name": "آر سی ای",
+    "aliases": [
+      "RCA",
+      "آر سی ای"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Thomson",
+    "english_name": "Thomson",
+    "persian_name": "تامسون",
+    "aliases": [
+      "Thomson",
+      "تامسون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Telefunken",
+    "english_name": "Telefunken",
+    "persian_name": "تلفنکن",
+    "aliases": [
+      "Telefunken",
+      "تلفنکن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Nord",
+    "english_name": "Nord",
+    "persian_name": "نورد",
+    "aliases": [
+      "Nord",
+      "نورد"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Elba",
+    "english_name": "Elba",
+    "persian_name": "البا",
+    "aliases": [
+      "Elba",
+      "البا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bompani",
+    "english_name": "Bompani",
+    "persian_name": "بومپانی",
+    "aliases": [
+      "Bompani",
+      "بومپانی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Brandt",
+    "english_name": "Brandt",
+    "persian_name": "برانت",
+    "aliases": [
+      "Brandt",
+      "برانت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Baumatic",
+    "english_name": "Baumatic",
+    "persian_name": "بوماتیک",
+    "aliases": [
+      "Baumatic",
+      "بوماتیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Cata",
+    "english_name": "Cata",
+    "persian_name": "کاتا",
+    "aliases": [
+      "Cata",
+      "کاتا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Teka",
+    "english_name": "Teka",
+    "persian_name": "تکا",
+    "aliases": [
+      "Teka",
+      "تکا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Nardi",
+    "english_name": "Nardi",
+    "persian_name": "ناردی",
+    "aliases": [
+      "Nardi",
+      "ناردی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Franke",
+    "english_name": "Franke",
+    "persian_name": "فرانکه",
+    "aliases": [
+      "Franke",
+      "فرانکه"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Elica",
+    "english_name": "Elica",
+    "persian_name": "الیکا",
+    "aliases": [
+      "Elica",
+      "الیکا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Falmec",
+    "english_name": "Falmec",
+    "persian_name": "فالمک",
+    "aliases": [
+      "Falmec",
+      "فالمک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Glem",
+    "english_name": "Glem",
+    "persian_name": "گلم",
+    "aliases": [
+      "Glem",
+      "گلم"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Belling",
+    "english_name": "Belling",
+    "persian_name": "بلینگ",
+    "aliases": [
+      "Belling",
+      "بلینگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Falcon",
+    "english_name": "Falcon",
+    "persian_name": "فالکون",
+    "aliases": [
+      "Falcon",
+      "فالکون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Leisure",
+    "english_name": "Leisure",
+    "persian_name": "لژر",
+    "aliases": [
+      "Leisure",
+      "لژر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bush",
+    "english_name": "Bush",
+    "persian_name": "بوش انگلیسی",
+    "aliases": [
+      "Bush",
+      "بوش انگلیسی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Logik",
+    "english_name": "Logik",
+    "persian_name": "لاجیک",
+    "aliases": [
+      "Logik",
+      "لاجیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Kenstar",
+    "english_name": "Kenstar",
+    "persian_name": "کن استار",
+    "aliases": [
+      "Kenstar",
+      "کن استار"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Onida",
+    "english_name": "Onida",
+    "persian_name": "اونیدا",
+    "aliases": [
+      "Onida",
+      "اونیدا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Voltas",
+    "english_name": "Voltas",
+    "persian_name": "ولتاس",
+    "aliases": [
+      "Voltas",
+      "ولتاس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Godrej",
+    "english_name": "Godrej",
+    "persian_name": "گودرج",
+    "aliases": [
+      "Godrej",
+      "گودرج"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Havells",
+    "english_name": "Havells",
+    "persian_name": "هاولز",
+    "aliases": [
+      "Havells",
+      "هاولز"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Orient",
+    "english_name": "Orient",
+    "persian_name": "اورینت",
+    "aliases": [
+      "Orient",
+      "اورینت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Singer",
+    "english_name": "Singer",
+    "persian_name": "سینگر",
+    "aliases": [
+      "Singer",
+      "سینگر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Kelvinator",
+    "english_name": "Kelvinator",
+    "persian_name": "کلویناتور",
+    "aliases": [
+      "Kelvinator",
+      "کلویناتور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "White-Westinghouse",
+    "english_name": "White-Westinghouse",
+    "persian_name": "وایت وستینگهاوس",
+    "aliases": [
+      "White-Westinghouse",
+      "وایت وستینگهاوس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Magic Chef",
+    "english_name": "Magic Chef",
+    "persian_name": "مجیک شف",
+    "aliases": [
+      "Magic Chef",
+      "مجیک شف"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Roper",
+    "english_name": "Roper",
+    "persian_name": "روپر",
+    "aliases": [
+      "Roper",
+      "روپر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Dacor",
+    "english_name": "Dacor",
+    "persian_name": "دیکور",
+    "aliases": [
+      "Dacor",
+      "دیکور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Cuisinart",
+    "english_name": "Cuisinart",
+    "persian_name": "کوییزینارت",
+    "aliases": [
+      "Cuisinart",
+      "کوییزینارت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hamilton Beach",
+    "english_name": "Hamilton Beach",
+    "persian_name": "همیلتون بیچ",
+    "aliases": [
+      "Hamilton Beach",
+      "همیلتون بیچ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Sunbeam",
+    "english_name": "Sunbeam",
+    "persian_name": "سان بیم",
+    "aliases": [
+      "Sunbeam",
+      "سان بیم"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Proctor Silex",
+    "english_name": "Proctor Silex",
+    "persian_name": "پراکتور سایلکس",
+    "aliases": [
+      "Proctor Silex",
+      "پراکتور سایلکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "George Foreman",
+    "english_name": "George Foreman",
+    "persian_name": "جورج فورمن",
+    "aliases": [
+      "George Foreman",
+      "جورج فورمن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Morphy Richards",
+    "english_name": "Morphy Richards",
+    "persian_name": "مورفی ریچاردز",
+    "aliases": [
+      "Morphy Richards",
+      "مورفی ریچاردز"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Swan",
+    "english_name": "Swan",
+    "persian_name": "سوان",
+    "aliases": [
+      "Swan",
+      "سوان"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Tower",
+    "english_name": "Tower",
+    "persian_name": "تاور",
+    "aliases": [
+      "Tower",
+      "تاور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Aicok",
+    "english_name": "Aicok",
+    "persian_name": "آیکوک",
+    "aliases": [
+      "Aicok",
+      "آیکوک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Cosori",
+    "english_name": "Cosori",
+    "persian_name": "کوسوری",
+    "aliases": [
+      "Cosori",
+      "کوسوری"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Instant",
+    "english_name": "Instant",
+    "persian_name": "اینستنت",
+    "aliases": [
+      "Instant",
+      "اینستنت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Cecotec",
+    "english_name": "Cecotec",
+    "persian_name": "سکوتک",
+    "aliases": [
+      "Cecotec",
+      "سکوتک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Tristar",
+    "english_name": "Tristar",
+    "persian_name": "تری استار",
+    "aliases": [
+      "Tristar",
+      "تری استار"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Orbegozo",
+    "english_name": "Orbegozo",
+    "persian_name": "اوربگوزو",
+    "aliases": [
+      "Orbegozo",
+      "اوربگوزو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ufesa",
+    "english_name": "Ufesa",
+    "persian_name": "اوفسا",
+    "aliases": [
+      "Ufesa",
+      "اوفسا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Jata",
+    "english_name": "Jata",
+    "persian_name": "جاتا",
+    "aliases": [
+      "Jata",
+      "جاتا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Beurer",
+    "english_name": "Beurer",
+    "persian_name": "بیورر",
+    "aliases": [
+      "Beurer",
+      "بیورر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Caso",
+    "english_name": "Caso",
+    "persian_name": "کاسو",
+    "aliases": [
+      "Caso",
+      "کاسو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Graef",
+    "english_name": "Graef",
+    "persian_name": "گراف",
+    "aliases": [
+      "Graef",
+      "گراف"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Rommelsbacher",
+    "english_name": "Rommelsbacher",
+    "persian_name": "روملزباخر",
+    "aliases": [
+      "Rommelsbacher",
+      "روملزباخر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Steba",
+    "english_name": "Steba",
+    "persian_name": "اشتبا",
+    "aliases": [
+      "Steba",
+      "اشتبا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Unold",
+    "english_name": "Unold",
+    "persian_name": "اونولد",
+    "aliases": [
+      "Unold",
+      "اونولد"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Adler",
+    "english_name": "Adler",
+    "persian_name": "ادلر",
+    "aliases": [
+      "Adler",
+      "ادلر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Mesko",
+    "english_name": "Mesko",
+    "persian_name": "مسکو",
+    "aliases": [
+      "Mesko",
+      "مسکو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Esperanza",
+    "english_name": "Esperanza",
+    "persian_name": "اسپرانزا",
+    "aliases": [
+      "Esperanza",
+      "اسپرانزا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Sencor",
+    "english_name": "Sencor",
+    "persian_name": "سنکور",
+    "aliases": [
+      "Sencor",
+      "سنکور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "ETA",
+    "english_name": "ETA",
+    "persian_name": "اتا",
+    "aliases": [
+      "ETA",
+      "اتا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Concept",
+    "english_name": "Concept",
+    "persian_name": "کانسپت",
+    "aliases": [
+      "Concept",
+      "کانسپت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Hyundai Home",
+    "english_name": "Hyundai Home",
+    "persian_name": "هیوندای هوم",
+    "aliases": [
+      "Hyundai Home",
+      "هیوندای هوم"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ocean",
+    "english_name": "Ocean",
+    "persian_name": "اوشن",
+    "aliases": [
+      "Ocean",
+      "اوشن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ferre",
+    "english_name": "Ferre",
+    "persian_name": "فره",
+    "aliases": [
+      "Ferre",
+      "فره"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Lofra",
+    "english_name": "Lofra",
+    "persian_name": "لوفرا",
+    "aliases": [
+      "Lofra",
+      "لوفرا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Master Kitchen",
+    "english_name": "Master Kitchen",
+    "persian_name": "مستر کیچن",
+    "aliases": [
+      "Master Kitchen",
+      "مستر کیچن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Dina",
+    "english_name": "Dina",
+    "persian_name": "دینا",
+    "aliases": [
+      "Dina",
+      "دینا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Nova",
+    "english_name": "Nova",
+    "persian_name": "نوا",
+    "aliases": [
+      "Nova",
+      "نوا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Flavel",
+    "english_name": "Flavel",
+    "persian_name": "فلاول",
+    "aliases": [
+      "Flavel",
+      "فلاول"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Altus",
+    "english_name": "Altus",
+    "persian_name": "آلتوس",
+    "aliases": [
+      "Altus",
+      "آلتوس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Regal",
+    "english_name": "Regal",
+    "persian_name": "ریگال",
+    "aliases": [
+      "Regal",
+      "ریگال"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Premier",
+    "english_name": "Premier",
+    "persian_name": "پریمیر",
+    "aliases": [
+      "Premier",
+      "پریمیر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Continental Edison",
+    "english_name": "Continental Edison",
+    "persian_name": "کنتیننتال ادیسون",
+    "aliases": [
+      "Continental Edison",
+      "کنتیننتال ادیسون"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Oceanic",
+    "english_name": "Oceanic",
+    "persian_name": "اوشنیک",
+    "aliases": [
+      "Oceanic",
+      "اوشنیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Polti",
+    "english_name": "Polti",
+    "persian_name": "پولتی",
+    "aliases": [
+      "Polti",
+      "پولتی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "HKoenig",
+    "english_name": "HKoenig",
+    "persian_name": "اچ کونیگ",
+    "aliases": [
+      "HKoenig",
+      "اچ کونیگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Valberg",
+    "english_name": "Valberg",
+    "persian_name": "والبرگ",
+    "aliases": [
+      "Valberg",
+      "والبرگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "EssentielB",
+    "english_name": "EssentielB",
+    "persian_name": "اسنسیل بی",
+    "aliases": [
+      "EssentielB",
+      "اسنسیل بی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Aya",
+    "english_name": "Aya",
+    "persian_name": "آیا",
+    "aliases": [
+      "Aya",
+      "آیا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Luxor",
+    "english_name": "Luxor",
+    "persian_name": "لوکسور",
+    "aliases": [
+      "Luxor",
+      "لوکسور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Fintek",
+    "english_name": "Fintek",
+    "persian_name": "فینتک",
+    "aliases": [
+      "Fintek",
+      "فینتک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Mastrad",
+    "english_name": "Mastrad",
+    "persian_name": "ماستراد",
+    "aliases": [
+      "Mastrad",
+      "ماستراد"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bissell",
+    "english_name": "Bissell",
+    "persian_name": "بیسل",
+    "aliases": [
+      "Bissell",
+      "بیسل"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ecovacs",
+    "english_name": "Ecovacs",
+    "persian_name": "اکووکس",
+    "aliases": [
+      "Ecovacs",
+      "اکووکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Roborock",
+    "english_name": "Roborock",
+    "persian_name": "روبوراک",
+    "aliases": [
+      "Roborock",
+      "روبوراک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Dreame",
+    "english_name": "Dreame",
+    "persian_name": "دریمی",
+    "aliases": [
+      "Dreame",
+      "دریمی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Eureka",
+    "english_name": "Eureka",
+    "persian_name": "یورکا",
+    "aliases": [
+      "Eureka",
+      "یورکا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "iRobot",
+    "english_name": "iRobot",
+    "persian_name": "آی ربات",
+    "aliases": [
+      "iRobot",
+      "آی ربات"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Tineco",
+    "english_name": "Tineco",
+    "persian_name": "تینکو",
+    "aliases": [
+      "Tineco",
+      "تینکو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Prolux",
+    "english_name": "Prolux",
+    "persian_name": "پرولوکس",
+    "aliases": [
+      "Prolux",
+      "پرولوکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Nilfisk",
+    "english_name": "Nilfisk",
+    "persian_name": "نیلفیسک",
+    "aliases": [
+      "Nilfisk",
+      "نیلفیسک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Numatic",
+    "english_name": "Numatic",
+    "persian_name": "نوماتیک",
+    "aliases": [
+      "Numatic",
+      "نوماتیک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Vorwerk",
+    "english_name": "Vorwerk",
+    "persian_name": "فوروِرک",
+    "aliases": [
+      "Vorwerk",
+      "فوروِرک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Aeno",
+    "english_name": "Aeno",
+    "persian_name": "آینو",
+    "aliases": [
+      "Aeno",
+      "آینو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Xiaomi",
+    "english_name": "Xiaomi",
+    "persian_name": "شیائومی",
+    "aliases": [
+      "Xiaomi",
+      "شیائومی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Viomi",
+    "english_name": "Viomi",
+    "persian_name": "ویومی",
+    "aliases": [
+      "Viomi",
+      "ویومی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Deerma",
+    "english_name": "Deerma",
+    "persian_name": "دیرما",
+    "aliases": [
+      "Deerma",
+      "دیرما"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Joyoung",
+    "english_name": "Joyoung",
+    "persian_name": "جویانگ",
+    "aliases": [
+      "Joyoung",
+      "جویانگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bear",
+    "english_name": "Bear",
+    "persian_name": "بر",
+    "aliases": [
+      "Bear",
+      "بر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Supor",
+    "english_name": "Supor",
+    "persian_name": "سوپور",
+    "aliases": [
+      "Supor",
+      "سوپور"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Konka",
+    "english_name": "Konka",
+    "persian_name": "کونکا",
+    "aliases": [
+      "Konka",
+      "کونکا"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Changhong",
+    "english_name": "Changhong",
+    "persian_name": "چانگ هونگ",
+    "aliases": [
+      "Changhong",
+      "چانگ هونگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Skyworth",
+    "english_name": "Skyworth",
+    "persian_name": "اسکای ورث",
+    "aliases": [
+      "Skyworth",
+      "اسکای ورث"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "AUX",
+    "english_name": "AUX",
+    "persian_name": "آکس",
+    "aliases": [
+      "AUX",
+      "آکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Chigo",
+    "english_name": "Chigo",
+    "persian_name": "چیگو",
+    "aliases": [
+      "Chigo",
+      "چیگو"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Gree",
+    "english_name": "Gree",
+    "persian_name": "گری",
+    "aliases": [
+      "Gree",
+      "گری"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Meling",
+    "english_name": "Meling",
+    "persian_name": "میلینگ",
+    "aliases": [
+      "Meling",
+      "میلینگ"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Ronshen",
+    "english_name": "Ronshen",
+    "persian_name": "رونشن",
+    "aliases": [
+      "Ronshen",
+      "رونشن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Comfee",
+    "english_name": "Comfee",
+    "persian_name": "کامفی",
+    "aliases": [
+      "Comfee",
+      "کامفی"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Galanz Home",
+    "english_name": "Galanz Home",
+    "persian_name": "گالانز هوم",
+    "aliases": [
+      "Galanz Home",
+      "گالانز هوم"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Carrier",
+    "english_name": "Carrier",
+    "persian_name": "کریر",
+    "aliases": [
+      "Carrier",
+      "کریر"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "York",
+    "english_name": "York",
+    "persian_name": "یورک",
+    "aliases": [
+      "York",
+      "یورک"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Trane",
+    "english_name": "Trane",
+    "persian_name": "ترین",
+    "aliases": [
+      "Trane",
+      "ترین"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Rheem",
+    "english_name": "Rheem",
+    "persian_name": "ریم",
+    "aliases": [
+      "Rheem",
+      "ریم"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Goodman",
+    "english_name": "Goodman",
+    "persian_name": "گودمن",
+    "aliases": [
+      "Goodman",
+      "گودمن"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Bryant",
+    "english_name": "Bryant",
+    "persian_name": "برایانت",
+    "aliases": [
+      "Bryant",
+      "برایانت"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Lennox",
+    "english_name": "Lennox",
+    "persian_name": "لنوکس",
+    "aliases": [
+      "Lennox",
+      "لنوکس"
+    ]
+  },
+  {
+    "family": "home_appliance",
+    "canonical_name": "Mitsubishi Heavy",
+    "english_name": "Mitsubishi Heavy",
+    "persian_name": "میتسوبیشی هوی",
+    "aliases": [
+      "Mitsubishi Heavy",
+      "میتسوبیشی هوی"
+    ]
+  }
+]

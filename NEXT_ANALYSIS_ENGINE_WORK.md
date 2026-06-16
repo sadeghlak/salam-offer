@@ -548,6 +548,8 @@ Attributes support
 - `score_candidate(...)` برای source و candidate خروجی `route_product_family(...)` می‌سازد.
 - خروجی routing در `raw_candidate.family_routing` ذخیره می‌شود.
 - strict semantic rules مربوط به برند، وات و مدل فقط برای familyهای فنی (`tools`, `digital`, `home_appliance`, `tools_auto`, `auto_part`) یا generic فعال می‌شوند.
+- `daily_off/data/brand_catalog.json` از دیتاست‌های برند دیجیتال و لوازم خانگی ساخته شد و `daily_off/brand_catalog.py` برای match فارسی/انگلیسی برندها اضافه شد.
+- Brand detection اکنون از catalog برای familyهای `digital` و `home_appliance` استفاده می‌کند؛ مثال: `Apple` و `اپل` هر دو canonical `Apple` می‌شوند، و `LG`/`ال جی` canonical `LG` می‌شوند.
 - Category mismatch هنوز وارد prefilter نشده و برای آینده نگه داشته شده است.
 - ProductIdentity کامل، family profileهای زیاد و migration جدید اضافه نشده‌اند.
 
