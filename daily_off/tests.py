@@ -1,12 +1,14 @@
+from datetime import date
 from types import SimpleNamespace
 
-from django.test import SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
 from .category_catalog import resolve_category_path
 from .family_router import route_family, route_product_family
-from .models import DailyProductSnapshot
+from .models import AnalysisCandidate, DailyProductSnapshot, DailyRun, Product
 from .semantic_rules import compare_semantic_cues
+from .views import export_run_analysis_candidates_csv
 
 
 class SemanticRulesTests(SimpleTestCase):
@@ -175,6 +177,52 @@ class CandidatePrefilterTests(SimpleTestCase):
 
         self.assertEqual(passed, candidates)
         self.assertEqual(rejected, [])
+
+
+class ExportRunReportTests(TestCase):
+    def test_export_user_report_has_simple_columns_and_links(self):
+        run = DailyRun.objects.create(business_date=date(2026, 6, 16), status=DailyRun.Status.RUNNING)
+        product = Product.objects.create(
+            basalam_product_id=100,
+            latest_title='محصول مرجع',
+            latest_vendor_identifier='source-vendor',
+        )
+        snapshot = DailyProductSnapshot.objects.create(
+            run=run,
+            product=product,
+            source_product_id=100,
+            business_date=run.business_date,
+            title='محصول مرجع',
+            price=1_000_000,
+            vendor_identifier='source-vendor',
+            analysis_status=DailyProductSnapshot.AnalysisStatus.ANALYZED,
+        )
+        AnalysisCandidate.objects.create(
+            snapshot=snapshot,
+            run=run,
+            product=product,
+            candidate_id=200,
+            candidate_title='محصول مشابه اول',
+            candidate_price=900_000,
+            candidate_vendor_identifier='candidate-vendor',
+            candidate_url='https://basalam.com/candidate-vendor/product/200',
+            similarity_score=0.9,
+            decision=AnalysisCandidate.Decision.ACCEPTED,
+        )
+
+        request = RequestFactory().get('/')
+        response = export_run_analysis_candidates_csv(request, run.run_key)
+        body = response.content.decode('utf-8')
+
+        self.assertIn('salam-offer-report', response['Content-Disposition'])
+        self.assertIn('نام محصول مرجع', body)
+        self.assertIn('قیمت داخل دیلی آف', body)
+        self.assertIn('محصول مشابه ۱', body)
+        self.assertNotIn('نظر شما درباره مشابه', body)
+        self.assertNotIn('محصول مشابه پیدا نشد؟', body)
+        self.assertIn('href="https://basalam.com/source-vendor/product/100"', body)
+        self.assertIn('href="https://basalam.com/candidate-vendor/product/200"', body)
+        self.assertIn('محصول مشابه اول', body)
 
 
 class ScoreCandidateSemanticBlockerTests(SimpleTestCase):

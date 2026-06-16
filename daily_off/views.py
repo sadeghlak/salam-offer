@@ -1,4 +1,3 @@
-import csv
 import json
 import logging
 from datetime import date
@@ -26,6 +25,7 @@ from .services import (
     mark_product_fetch_error,
     next_missing_product_batch,
     process_analysis_batch,
+    product_url,
     refresh_run_status,
     requeue_stale_analysis,
     store_analysis_result,
@@ -552,32 +552,26 @@ def api_finish_run(request):
     })
 
 
-def csv_value(value):
-    if value is None:
+def excel_link_cell(url, label):
+    label = str(label or '').strip()
+    url = str(url or '').strip()
+    if not label:
         return ''
-    if isinstance(value, (list, tuple)):
-        return ' | '.join([str(item) for item in value])
-    return value
+    if not url:
+        return escape(label)
+    return f'<a href="{escape(url, quote=True)}">{escape(label)}</a>'
 
 
 def export_run_analysis_candidates_csv(request, run_key):
     run = get_object_or_404(DailyRun, run_key=run_key)
     response = HttpResponse(content_type='application/vnd.ms-excel; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="salam-offer-dataset-{run.business_date}-{run.run_key}.xls"'
+    response['Content-Disposition'] = f'attachment; filename="salam-offer-report-{run.business_date}-{run.run_key}.xls"'
     headers = [
-        'اسم محصول اصلی',
+        'نام محصول مرجع',
+        'قیمت داخل دیلی آف',
         'محصول مشابه ۱',
         'محصول مشابه ۲',
         'محصول مشابه ۳',
-        'محصول مشابه پیدا نشد؟',
-        'وضعیت محصول مشابه ۱',
-        'دلیل وضعیت محصول مشابه ۱',
-        'وضعیت محصول مشابه ۲',
-        'دلیل وضعیت محصول مشابه ۲',
-        'وضعیت محصول مشابه ۳',
-        'دلیل وضعیت محصول مشابه ۳',
-        'محصول مشابه صحیح دیگری که جا افتاده',
-        'توضیحات کلی شما',
     ]
     rows = []
 
@@ -585,42 +579,50 @@ def export_run_analysis_candidates_csv(request, run_key):
     accepted_candidates = (
         AnalysisCandidate.objects
         .filter(run=run, decision=AnalysisCandidate.Decision.ACCEPTED)
-        .only('snapshot_id', 'candidate_title', 'similarity_score', 'candidate_price')
+        .only(
+            'snapshot_id',
+            'candidate_id',
+            'candidate_title',
+            'candidate_url',
+            'candidate_vendor_identifier',
+            'similarity_score',
+            'candidate_price',
+        )
         .order_by('snapshot_id', '-similarity_score', 'candidate_price')
     )
     for candidate in accepted_candidates:
         bucket = accepted_by_snapshot.setdefault(candidate.snapshot_id, [])
         if len(bucket) < 3:
-            bucket.append(candidate.candidate_title)
+            bucket.append({
+                'title': candidate.candidate_title,
+                'url': candidate.candidate_url or product_url(candidate.candidate_id, candidate.candidate_vendor_identifier),
+            })
 
     snapshots = run.snapshots.only(
         'id',
+        'source_product_id',
         'title',
-        'analysis_status',
+        'price',
+        'vendor_identifier',
         'product_url1',
         'product_url2',
         'product_url3',
     ).order_by('id')
     for snapshot in snapshots:
-        similar_names = accepted_by_snapshot.get(snapshot.id, [])
-        if not similar_names:
-            similar_names = [url for url in [snapshot.product_url1, snapshot.product_url2, snapshot.product_url3] if url]
-        similar_names = similar_names[:3] + [''] * (3 - len(similar_names))
-        no_match = 'بله' if not any(similar_names) or snapshot.analysis_status == DailyProductSnapshot.AnalysisStatus.NO_MATCH else ''
+        matches = accepted_by_snapshot.get(snapshot.id, [])
+        if not matches:
+            matches = [
+                {'title': url, 'url': url}
+                for url in [snapshot.product_url1, snapshot.product_url2, snapshot.product_url3]
+                if url
+            ]
+        matches = matches[:3] + [{'title': '', 'url': ''}] * (3 - len(matches))
         rows.append([
-            snapshot.title,
-            similar_names[0],
-            similar_names[1],
-            similar_names[2],
-            no_match,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
+            excel_link_cell(product_url(snapshot.source_product_id, snapshot.vendor_identifier), snapshot.title),
+            snapshot.price,
+            excel_link_cell(matches[0].get('url'), matches[0].get('title')),
+            excel_link_cell(matches[1].get('url'), matches[1].get('title')),
+            excel_link_cell(matches[2].get('url'), matches[2].get('title')),
         ])
 
     response.write('﻿')
@@ -633,7 +635,7 @@ def export_run_analysis_candidates_csv(request, run_key):
     for row in rows:
         response.write('<tr>')
         for value in row:
-            response.write(f'<td>{escape(str(value or ""))}</td>')
+            response.write(f'<td>{value if isinstance(value, str) and value.startswith("<a ") else escape(str(value or ""))}</td>')
         response.write('</tr>')
     response.write('</tbody></table></body></html>')
     return response
