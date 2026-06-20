@@ -67,6 +67,18 @@
         <div class="toolbar-search">
             <input class="inline-field" type="search" name="q" value="{{ q }}" placeholder="Search product, vendor, product id, snapshot id">
         </div>
+        <select name="category_lvl1" aria-label="Filter by level 1 category">
+            <option value="">Filter: همه دسته‌های سطح ۱</option>
+            {% for option in category_lvl1_options %}
+                <option value="{{ option }}" {% if selected_category_lvl1 == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <select name="category" aria-label="Filter by category">
+            <option value="">Filter: همه دسته‌ها</option>
+            {% for option in category_options %}
+                <option value="{{ option }}" {% if selected_category == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
         <select name="analysis_status" aria-label="Filter by analysis status">
             <option value="">Filter: همه وضعیت‌های تحلیل</option>
             {% for option in status_options %}
@@ -126,6 +138,7 @@
                         <td>
                             <div class="vendor-cell">
                                 <span class="vendor-name">{{ item.vendor_name|default:'—' }}</span>
+                                {% if item.category_lvl1_title %}<span class="muted">{{ item.category_lvl1_title }}</span>{% endif %}
                                 {% if item.category_title %}<span class="muted">{{ item.category_title }}</span>{% endif %}
                             </div>
                         </td>

@@ -13,6 +13,7 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from .category_catalog import resolve_category_path
 from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .services import (
     analysis_counts_for_run,
@@ -668,6 +669,22 @@ def export_run_analysis_candidates_csv(request, run_key):
     return response
 
 
+def snapshot_level1_category(snapshot):
+    category_path = resolve_category_path(
+        category_title=snapshot.category_title,
+        navigation_title=snapshot.navigation_title,
+        navigation_slug=snapshot.navigation_slug,
+    )
+    return category_path.get('lvl1') or 'نامشخص'
+
+
+def level1_categories_for_queryset(queryset):
+    options = set()
+    for snapshot in queryset.select_related(None).only('category_title', 'navigation_title', 'navigation_slug'):
+        options.add(snapshot_level1_category(snapshot))
+    return sorted(options)
+
+
 def dashboard_totals():
     return {
         'runs': DailyRun.objects.count(),
@@ -686,6 +703,7 @@ def build_run_context(request, run):
     base_snapshots = run.snapshots.select_related('product')
 
     category = request.GET.get('category') or ''
+    category_lvl1 = request.GET.get('category_lvl1') or ''
     analysis_status = request.GET.get('analysis_status') or ''
     fetch_status = request.GET.get('fetch_status') or ''
     result_state = request.GET.get('result_state') or ''
@@ -698,6 +716,7 @@ def build_run_context(request, run):
         .values_list('category_title', flat=True)
         .distinct()
     )
+    category_lvl1_options = level1_categories_for_queryset(base_snapshots)
     status_options = list(
         base_snapshots.exclude(analysis_status='')
         .order_by('analysis_status')
@@ -721,6 +740,13 @@ def build_run_context(request, run):
     snapshots = base_snapshots
     if category:
         snapshots = snapshots.filter(category_title=category)
+    if category_lvl1:
+        matching_ids = [
+            snapshot.id
+            for snapshot in snapshots.select_related(None).only('id', 'category_title', 'navigation_title', 'navigation_slug')
+            if snapshot_level1_category(snapshot) == category_lvl1
+        ]
+        snapshots = snapshots.filter(id__in=matching_ids)
     if analysis_status:
         snapshots = snapshots.filter(analysis_status=analysis_status)
     if fetch_status:
@@ -755,6 +781,7 @@ def build_run_context(request, run):
     }
     snapshots = list(snapshots.order_by(sort_map.get(sort, '-captured_at')))
     for item in snapshots:
+        item.category_lvl1_title = snapshot_level1_category(item)
         if item.primary_price and item.price and item.primary_price > item.price:
             item.discount_percent = round(((item.primary_price - item.price) / item.primary_price) * 100)
         else:
@@ -767,9 +794,11 @@ def build_run_context(request, run):
         'selected_run': run,
         'snapshots': snapshots,
         'category_options': category_options,
+        'category_lvl1_options': category_lvl1_options,
         'status_options': status_options,
         'fetch_status_options': fetch_status_options,
         'selected_category': category,
+        'selected_category_lvl1': category_lvl1,
         'selected_analysis_status': analysis_status,
         'selected_fetch_status': fetch_status,
         'selected_result_state': result_state,

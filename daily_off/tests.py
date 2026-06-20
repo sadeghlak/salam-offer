@@ -9,7 +9,7 @@ from .family_router import route_family, route_product_family
 from .models import AnalysisCandidate, DailyProductSnapshot, DailyRun, Product
 from .semantic_rules import compare_semantic_cues
 from .services import requeue_run_analysis
-from .views import export_run_analysis_candidates_csv
+from .views import build_run_context, export_run_analysis_candidates_csv
 
 
 class SemanticRulesTests(SimpleTestCase):
@@ -219,6 +219,39 @@ class CandidatePrefilterTests(SimpleTestCase):
 
         self.assertEqual(passed, candidates)
         self.assertEqual(rejected, [])
+
+
+class LevelOneCategoryFilterTests(TestCase):
+    def test_run_context_filters_by_resolved_level_one_category(self):
+        run = DailyRun.objects.create(business_date=date(2026, 6, 16), status=DailyRun.Status.RUNNING)
+        digital_product = Product.objects.create(basalam_product_id=100, latest_title='گوشی')
+        food_product = Product.objects.create(basalam_product_id=200, latest_title='بادام')
+        DailyProductSnapshot.objects.create(
+            run=run,
+            product=digital_product,
+            source_product_id=100,
+            business_date=run.business_date,
+            title='گوشی موبایل سامسونگ',
+            category_title='گوشی موبایل',
+        )
+        DailyProductSnapshot.objects.create(
+            run=run,
+            product=food_product,
+            source_product_id=200,
+            business_date=run.business_date,
+            title='بادام درختی تازه',
+            category_title='بادام درختی',
+        )
+
+        request = RequestFactory().get('/', {'category_lvl1': 'کالای دیجیتال'})
+        context = build_run_context(request, run)
+
+        self.assertIn('کالای دیجیتال', context['category_lvl1_options'])
+        self.assertIn('مواد غذایی', context['category_lvl1_options'])
+        self.assertEqual(context['selected_category_lvl1'], 'کالای دیجیتال')
+        self.assertEqual(context['shown_count'], 1)
+        self.assertEqual(context['snapshots'][0].source_product_id, 100)
+        self.assertEqual(context['snapshots'][0].category_lvl1_title, 'کالای دیجیتال')
 
 
 class RequeueRunAnalysisTests(TestCase):
