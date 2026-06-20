@@ -468,8 +468,9 @@ Applying daily_off.0006_analysiscandidate... OK
 3. هر دو به DB تست وصل باشند.
 4. n8n test workflow دیتا را به دامنه تست ارسال کند یا چند محصول دستی ingest شود.
 5. run detail باز شود.
-6. تحلیل محصول queue شود.
-7. در log worker باید دیده شود:
+6. با دکمه `تحلیل مجدد همه محصولات` کل محصولات قابل تحلیل run دوباره به صف بروند؛ حتی اگر قبلاً analyzed/no_match/error شده باشند، نتیجه قبلی و candidate rows آن‌ها پاک و وضعیتشان `analysis_pending` شود. snapshotهای در حال اجرا دست‌نخورده می‌مانند.
+7. تحلیل محصول تکی هم از دکمه ردیف محصول قابل queue شدن است.
+8. در log worker باید دیده شود:
 
 ```text
 Analysis worker started loop=True ...
@@ -477,9 +478,9 @@ analysis batch started ... claimed=...
 analysis snapshot finished snapshot_id=... status=... accepted=...
 ```
 
-8. در UI وضعیت analysis از pending/running به analyzed/no_match/error تغییر کند.
-9. خروجی CSV گزارش تحلیل گرفته شود.
-10. CSV در Excel باز شود و ستون‌های فارسی و `human_*` درست دیده شوند.
+9. در UI وضعیت analysis از pending/running به analyzed/no_match/error تغییر کند.
+10. خروجی اکسل محصولات مشابه گرفته شود.
+11. فایل Excel باز شود و ستون‌های گزارش کاربرمحور و لینک‌های محصول درست دیده شوند.
 
 ## 11. نکات مهم برای ادامه توسعه
 
@@ -499,8 +500,9 @@ analysis snapshot finished snapshot_id=... status=... accepted=...
 2. Candidate Quality Filter فاز ۱ پیاده‌سازی شده است؛ قدم بعدی بررسی اثر آن روی داده واقعی و در صورت نیاز tuning محافظه‌کارانه است.
 3. Evidence System اولیه برای semantic blockers پیاده‌سازی شده و evidence داخل `raw_candidate` ذخیره می‌شود؛ migration جدید فعلاً لازم نیست.
 4. Category Catalog و Family Router ساده با artifact پایدار `daily_off/data/category_catalog.json` پیاده‌سازی شده‌اند.
-5. تست branch `salam-test` روی دامنه تستی و بررسی اثر تغییرات روی محصولات واقعی.
-6. تحلیل تعدادی محصول، گرفتن خروجی گزارش، annotation انسانی، و تبدیل خطاهای پرتکرار به ruleهای جدید.
+5. دکمه تحلیل مجدد همه محصولات باید کل محصولات قابل تحلیل run را دوباره queue کند، حتی اگر قبلاً تحلیل شده باشند.
+6. تست branch `salam-test` روی دامنه تستی و بررسی اثر تغییرات روی محصولات واقعی.
+7. تحلیل تعدادی محصول، گرفتن خروجی گزارش، annotation انسانی، و تبدیل خطاهای پرتکرار به ruleهای جدید.
 
 سطح دسترسی/OAuth فعلاً اولویت ۲ است و فقط وقتی کاربر صراحتاً بگوید وارد فاز auth/access می‌شویم.
 

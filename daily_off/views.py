@@ -27,6 +27,7 @@ from .services import (
     process_analysis_batch,
     product_url,
     refresh_run_status,
+    requeue_run_analysis,
     requeue_stale_analysis,
     store_analysis_result,
     store_product_snapshot,
@@ -478,6 +479,32 @@ def api_process_analysis_batch(request):
         actor=payload.get('actor') or 'django_api',
     )
     return JsonResponse(result)
+
+
+@csrf_exempt
+@require_POST
+def api_rerun_analysis(request, run_key):
+    payload = parse_body(request)
+    if payload is None:
+        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+    request_id = payload.get('request_id') or make_request_id()
+    actor = payload.get('actor') or 'django_api'
+    try:
+        run, queued_count = requeue_run_analysis(run_key=run_key, request_id=request_id, actor=actor)
+    except ObjectDoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'run_not_found'}, status=404)
+
+    result = analysis_payload_for_run(run)
+    analysis = result['analysis']
+    result.update({
+        'ok': True,
+        'status': run.status,
+        'queued_count': queued_count,
+        'request_id': request_id,
+        'is_complete': analysis['pending'] == 0 and analysis['running'] == 0,
+    })
+    return JsonResponse(result, status=202 if queued_count else 200)
 
 
 @require_GET

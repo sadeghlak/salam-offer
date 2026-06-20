@@ -620,6 +620,63 @@ def enqueue_snapshot_analysis(*, snapshot_id, force=False, stale_minutes=30, req
     return snapshot, True, 'queued'
 
 
+@transaction.atomic
+def requeue_run_analysis(*, run_key, request_id='', actor='django_api'):
+    run = DailyRun.objects.select_for_update().get(run_key=run_key)
+    snapshots = list(
+        run.snapshots
+        .select_for_update()
+        .select_related('product')
+        .filter(fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED)
+        .exclude(analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING)
+        .order_by('id')
+    )
+    if not snapshots:
+        return run, 0
+
+    snapshot_ids = [snapshot.id for snapshot in snapshots]
+    AnalysisCandidate.objects.filter(snapshot_id__in=snapshot_ids).delete()
+
+    now = timezone.now()
+    for snapshot in snapshots:
+        from_status = snapshot.analysis_status
+        snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
+        snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
+        snapshot.product_url1 = ''
+        snapshot.product_url2 = ''
+        snapshot.product_url3 = ''
+        snapshot.accepted_candidates_count = 0
+        snapshot.error_message = ''
+        snapshot.updated_at = now
+        snapshot.save(update_fields=[
+            'analysis_status',
+            'status_row',
+            'product_url1',
+            'product_url2',
+            'product_url3',
+            'accepted_candidates_count',
+            'error_message',
+            'updated_at',
+        ])
+        log_analysis_status(
+            snapshot=snapshot,
+            event_type=AnalysisStatusLog.EventType.REQUEUED if from_status == DailyProductSnapshot.AnalysisStatus.RUNNING else AnalysisStatusLog.EventType.QUEUED,
+            from_status=from_status,
+            to_status=snapshot.analysis_status,
+            status_row=snapshot.status_row,
+            message='محصول برای تحلیل مجدد کل اجرا در صف قرار گرفت.',
+            metadata={'forced_run_rerun': True},
+            request_id=request_id,
+            actor=actor,
+        )
+
+    run.status = DailyRun.Status.RUNNING
+    run.finished_at = None
+    run.save(update_fields=['status', 'finished_at', 'updated_at'])
+    refresh_run_status(run)
+    return run, len(snapshots)
+
+
 def find_snapshot(*, snapshot_id=None, run_key=None, product_id=None):
     queryset = DailyProductSnapshot.objects.select_related('run', 'product')
     if snapshot_id:

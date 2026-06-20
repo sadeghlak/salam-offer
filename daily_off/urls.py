@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/analysis/snapshots/<int:snapshot_id>/run/', views.api_run_snapshot_analysis, name='api_run_snapshot_analysis'),
     path('api/analysis/snapshots/<int:snapshot_id>/status/', views.api_snapshot_analysis_status, name='api_snapshot_analysis_status'),
     path('api/analysis/snapshots/<int:snapshot_id>/logs/', views.api_snapshot_analysis_logs, name='api_snapshot_analysis_logs'),
+    path('api/runs/<uuid:run_key>/analysis-rerun/', views.api_rerun_analysis, name='api_rerun_analysis'),
     path('api/runs/<uuid:run_key>/analysis-status/', views.api_run_analysis_status, name='api_run_analysis_status'),
     path('api/runs/finish/', views.api_finish_run, name='api_finish_run'),
 ]

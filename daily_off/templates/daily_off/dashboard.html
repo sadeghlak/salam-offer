@@ -56,7 +56,7 @@
             <span class="badge {% if run.status == 'completed' %}ok{% elif run.status == 'failed' or run.status == 'partial_failed' %}error{% elif run.status == 'running' %}info{% else %}pending{% endif %}">{{ run.status|status_label }}</span>
         </div>
         <div class="ops-topbar-actions">
-            <button class="btn secondary" type="button" data-analyze-all data-run-key="{{ run.run_key }}">تحلیل همه</button>
+            <button class="btn secondary" type="button" data-analyze-all data-run-key="{{ run.run_key }}">تحلیل مجدد همه</button>
             <button class="btn secondary" type="button" data-stop-analysis disabled>توقف</button>
             <a class="btn ghost" href="{% url 'daily_off:export_run_analysis_candidates_csv' run.run_key %}">Reports</a>
             <span class="btn ghost disabled">Analytics</span>
@@ -336,11 +336,27 @@
 
   if (analyzeAllButton) {
     analyzeAllButton.addEventListener('click', () => {
+      if (!confirm('کل محصولات این اجرا دوباره تحلیل شوند؟ نتایج قبلی محصولات این اجرا جایگزین می‌شود.')) return;
       shouldContinue = true;
       analyzeAllButton.disabled = true;
       if (stopButton) stopButton.disabled = false;
-      setProgress('نمایش وضعیت صف تحلیل شروع شد. پردازش توسط worker سمت سرور انجام می‌شود.');
-      pollRunStatus();
+      setProgress('همه محصولات قابل تحلیل دوباره در صف worker قرار می‌گیرند...');
+      postJson(`/api/runs/${analyzeAllButton.dataset.runKey}/analysis-rerun/`, {actor: 'ui_dashboard_rerun'}).then((data) => {
+        if (!data.ok) {
+          setProgress(`خطا در شروع تحلیل مجدد: ${data.error || 'خطای نامشخص'}`);
+          shouldContinue = false;
+          analyzeAllButton.disabled = false;
+          if (stopButton) stopButton.disabled = true;
+          return;
+        }
+        setProgress(`تحلیل مجدد شروع شد؛ محصولات صف‌شده: <strong>${data.queued_count || 0}</strong>`);
+        pollRunStatus();
+      }).catch((error) => {
+        setProgress(`خطای ارتباط با سایت: ${error}`);
+        shouldContinue = false;
+        analyzeAllButton.disabled = false;
+        if (stopButton) stopButton.disabled = true;
+      });
     });
   }
 

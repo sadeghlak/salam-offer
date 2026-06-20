@@ -8,6 +8,7 @@ from .category_catalog import resolve_category_path
 from .family_router import route_family, route_product_family
 from .models import AnalysisCandidate, DailyProductSnapshot, DailyRun, Product
 from .semantic_rules import compare_semantic_cues
+from .services import requeue_run_analysis
 from .views import export_run_analysis_candidates_csv
 
 
@@ -218,6 +219,65 @@ class CandidatePrefilterTests(SimpleTestCase):
 
         self.assertEqual(passed, candidates)
         self.assertEqual(rejected, [])
+
+
+class RequeueRunAnalysisTests(TestCase):
+    def test_requeue_run_analysis_resets_finished_snapshots(self):
+        run = DailyRun.objects.create(business_date=date(2026, 6, 16), status=DailyRun.Status.COMPLETED)
+        product = Product.objects.create(basalam_product_id=100, latest_title='محصول مرجع')
+        snapshot = DailyProductSnapshot.objects.create(
+            run=run,
+            product=product,
+            source_product_id=100,
+            business_date=run.business_date,
+            title='محصول مرجع',
+            price=1_000_000,
+            analysis_status=DailyProductSnapshot.AnalysisStatus.ANALYZED,
+            status_row=DailyProductSnapshot.AnalysisStatus.ANALYZED,
+            product_url1='https://basalam.com/a/product/1',
+            accepted_candidates_count=1,
+        )
+        AnalysisCandidate.objects.create(
+            snapshot=snapshot,
+            run=run,
+            product=product,
+            candidate_id=200,
+            candidate_title='محصول مشابه',
+            candidate_price=900_000,
+            decision=AnalysisCandidate.Decision.ACCEPTED,
+        )
+
+        run, queued_count = requeue_run_analysis(run_key=run.run_key, actor='test')
+        snapshot.refresh_from_db()
+
+        self.assertEqual(queued_count, 1)
+        self.assertEqual(run.status, DailyRun.Status.RUNNING)
+        self.assertIsNone(run.finished_at)
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.PENDING)
+        self.assertEqual(snapshot.status_row, DailyProductSnapshot.AnalysisStatus.PENDING)
+        self.assertEqual(snapshot.product_url1, '')
+        self.assertEqual(snapshot.accepted_candidates_count, 0)
+        self.assertFalse(AnalysisCandidate.objects.filter(snapshot=snapshot).exists())
+
+    def test_requeue_run_analysis_keeps_running_snapshots_untouched(self):
+        run = DailyRun.objects.create(business_date=date(2026, 6, 16), status=DailyRun.Status.RUNNING)
+        product = Product.objects.create(basalam_product_id=100, latest_title='محصول مرجع')
+        snapshot = DailyProductSnapshot.objects.create(
+            run=run,
+            product=product,
+            source_product_id=100,
+            business_date=run.business_date,
+            title='محصول مرجع',
+            analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING,
+            status_row=DailyProductSnapshot.AnalysisStatus.RUNNING,
+        )
+
+        run, queued_count = requeue_run_analysis(run_key=run.run_key, actor='test')
+        snapshot.refresh_from_db()
+
+        self.assertEqual(queued_count, 0)
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.RUNNING)
+        self.assertEqual(snapshot.status_row, DailyProductSnapshot.AnalysisStatus.RUNNING)
 
 
 class ExportRunReportTests(TestCase):
