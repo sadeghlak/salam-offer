@@ -832,6 +832,48 @@ def build_dashboard_context(request, selected_run=None):
     return context
 
 
+def management_users_dashboard(request):
+    access_requests = [
+        {
+            'name': 'کاربر در انتظار تأیید',
+            'basalam_id': '—',
+            'requested_role': 'Operator',
+            'status': 'pending',
+            'status_label': 'در انتظار بررسی',
+            'requested_at': 'امروز، ۱۰:۴۵',
+            'source': 'Basalam OAuth',
+        },
+        {
+            'name': 'کاربر تأیید شده نمونه',
+            'basalam_id': '—',
+            'requested_role': 'Reviewer',
+            'status': 'approved',
+            'status_label': 'تأیید شده',
+            'requested_at': 'دیروز، ۱۸:۲۰',
+            'source': 'Basalam OAuth',
+        },
+        {
+            'name': 'درخواست رد شده نمونه',
+            'basalam_id': '—',
+            'requested_role': 'Viewer',
+            'status': 'rejected',
+            'status_label': 'رد شده',
+            'requested_at': '۲ روز قبل',
+            'source': 'Basalam OAuth',
+        },
+    ]
+    metrics = {
+        'pending': 1,
+        'approved': 1,
+        'rejected': 1,
+        'operators': 1,
+    }
+    return render(request, 'daily_off/management_users.html', {
+        'access_requests': access_requests,
+        'metrics': metrics,
+    })
+
+
 def dashboard_home(request):
     return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
 

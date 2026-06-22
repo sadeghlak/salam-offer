@@ -1,0 +1,202 @@
+{% extends 'daily_off/base.html' %}
+{% block title %}Salam Offer · مدیریت کاربران{% endblock %}
+
+{% block sidebar %}
+<aside class="ops-sidebar" aria-label="Salam Offer management navigation">
+    <a class="ops-brand" href="{% url 'daily_off:dashboard' %}">
+        <span class="ops-brand-mark">%</span>
+        <span class="ops-brand-title">Salam Offer</span>
+    </a>
+    <nav class="ops-nav">
+        <a class="ops-nav-link" href="{% url 'daily_off:dashboard' %}"><span class="ops-nav-dot"></span>بازگشت به سایت</a>
+        <span class="ops-nav-link active"><span class="ops-nav-dot"></span>مدیریت کاربران</span>
+        <span class="ops-nav-link disabled"><span class="ops-nav-dot"></span>فرایندها</span>
+        <span class="ops-nav-link disabled"><span class="ops-nav-dot"></span>گزارش رخدادها</span>
+    </nav>
+</aside>
+{% endblock %}
+
+{% block content %}
+<style>
+    .management-shell { display: grid; gap: 12px; min-height: calc(100vh - 30px); }
+    .management-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+        gap: 12px;
+        align-items: stretch;
+    }
+    .management-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+    }
+    .management-hero h1 { font-size: 22px; line-height: 1.7; letter-spacing: -.3px; }
+    .management-kicker { color: var(--primary-dark); font-size: 11px; font-weight: 900; letter-spacing: .02em; text-transform: uppercase; }
+    .management-description { margin: 8px 0 0; color: var(--muted); line-height: 1.9; max-width: 760px; }
+    .management-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .management-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .management-stat { padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); }
+    .management-stat span { display: block; color: var(--muted); font-size: 11px; font-weight: 750; }
+    .management-stat strong { display: block; margin-top: 4px; color: var(--text); font-size: 22px; line-height: 1.2; }
+    .management-tabs { display: flex; align-items: center; gap: 6px; padding: 7px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .management-tab { min-height: 30px; padding: 7px 11px; border-radius: 9px; color: #374151; font-size: 12px; font-weight: 850; }
+    .management-tab.active { color: var(--primary-dark); background: var(--primary-soft); }
+    .management-tab.disabled { color: var(--muted-soft); background: var(--surface-soft); }
+    .management-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+    .management-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .management-toolbar .toolbar-search { flex: 1 1 320px; }
+    .access-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .access-table th { padding: 9px 10px; background: #f9fafb; color: var(--muted); border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 900; white-space: nowrap; }
+    .access-table td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; font-size: 12px; }
+    .access-table tr:last-child td { border-bottom: 0; }
+    .user-cell { display: grid; gap: 3px; }
+    .user-cell strong { font-size: 13px; }
+    .request-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .role-pill { display: inline-flex; padding: 3px 8px; border-radius: 999px; background: var(--info-soft); color: var(--info); border: 1px solid #bfdbfe; font-size: 11px; font-weight: 850; }
+    .management-side { display: grid; gap: 10px; }
+    .workflow-list { display: grid; gap: 8px; margin-top: 10px; }
+    .workflow-item { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); }
+    .workflow-item strong { font-size: 12px; }
+    .workflow-item span { color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .empty-state { padding: 26px; text-align: center; color: var(--muted); }
+    @media (max-width: 1100px) {
+        .management-hero, .management-layout { grid-template-columns: 1fr; }
+        .management-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+        .management-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .access-table { min-width: 760px; }
+        .management-card.table-card { overflow: auto; }
+    }
+</style>
+
+<section class="management-shell">
+    <nav class="ops-page-menu" aria-label="Management menu">
+        <div class="ops-page-menu-items">
+            <span class="ops-page-menu-item active">مدیریت کاربران</span>
+            <span class="ops-page-menu-item">فرایندها</span>
+            <span class="ops-page-menu-item">دسترسی‌ها</span>
+            <span class="ops-page-menu-item">Audit</span>
+        </div>
+        <span class="muted">Management Console</span>
+    </nav>
+
+    <section class="management-hero">
+        <div class="management-card">
+            <span class="management-kicker">Access Control</span>
+            <h1>داشبورد مدیریت سلام آفر</h1>
+            <p class="management-description">
+                این صفحه پیش‌نمایش کنسول مدیریتی است. اولین تب روی صف درخواست‌های ورود با باسلام تمرکز دارد؛
+                بعد از اتصال OAuth، کاربران ابتدا درخواست ورود می‌دهند و فقط بعد از تأیید مدیر امکان استفاده از سلام آفر را خواهند داشت.
+            </p>
+            <div class="management-actions">
+                <span class="btn disabled">اتصال OAuth باسلام در مرحله بعد</span>
+                <span class="btn secondary disabled">تنظیم نقش‌های پیش‌فرض</span>
+            </div>
+        </div>
+        <div class="management-card">
+            <div class="management-stat-grid">
+                <div class="management-stat"><span>در انتظار تأیید</span><strong>{{ metrics.pending }}</strong></div>
+                <div class="management-stat"><span>تأیید شده</span><strong>{{ metrics.approved }}</strong></div>
+                <div class="management-stat"><span>رد شده</span><strong>{{ metrics.rejected }}</strong></div>
+                <div class="management-stat"><span>Operator فعال</span><strong>{{ metrics.operators }}</strong></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="management-tabs">
+        <span class="management-tab active">درخواست‌های ورود</span>
+        <span class="management-tab disabled">کاربران فعال</span>
+        <span class="management-tab disabled">نقش‌ها و مجوزها</span>
+        <span class="management-tab disabled">رخدادهای امنیتی</span>
+    </div>
+
+    <section class="management-layout">
+        <div class="management-card table-card">
+            <div class="management-toolbar">
+                <div class="toolbar-search">
+                    <input class="inline-field" type="search" placeholder="جستجو بر اساس نام، شناسه باسلام یا نقش">
+                </div>
+                <select aria-label="status filter">
+                    <option>همه وضعیت‌ها</option>
+                    <option>در انتظار بررسی</option>
+                    <option>تأیید شده</option>
+                    <option>رد شده</option>
+                </select>
+                <select aria-label="role filter">
+                    <option>همه نقش‌ها</option>
+                    <option>Admin</option>
+                    <option>Operator</option>
+                    <option>Reviewer</option>
+                    <option>Viewer</option>
+                </select>
+                <button class="btn secondary" type="button">فیلتر</button>
+            </div>
+
+            <table class="access-table">
+                <thead>
+                    <tr>
+                        <th>کاربر</th>
+                        <th>شناسه باسلام</th>
+                        <th>نقش درخواستی</th>
+                        <th>وضعیت</th>
+                        <th>زمان درخواست</th>
+                        <th>اقدام</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in access_requests %}
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <strong>{{ item.name }}</strong>
+                                    <span class="muted">{{ item.source }}</span>
+                                </div>
+                            </td>
+                            <td>{{ item.basalam_id }}</td>
+                            <td><span class="role-pill">{{ item.requested_role }}</span></td>
+                            <td>
+                                <span class="badge {% if item.status == 'approved' %}ok{% elif item.status == 'rejected' %}error{% else %}pending{% endif %}">{{ item.status_label }}</span>
+                            </td>
+                            <td><span class="muted">{{ item.requested_at }}</span></td>
+                            <td>
+                                <div class="request-actions">
+                                    {% if item.status == 'pending' %}
+                                        <button class="btn" type="button">تأیید</button>
+                                        <button class="btn secondary" type="button">رد</button>
+                                    {% else %}
+                                        <button class="btn ghost" type="button">جزئیات</button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6"><div class="empty-state">درخواستی برای بررسی وجود ندارد.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <aside class="management-side">
+            <div class="management-card">
+                <span class="management-kicker">Permission Model</span>
+                <h2>نقش‌های پیشنهادی</h2>
+                <div class="workflow-list">
+                    <div class="workflow-item"><strong>Admin</strong><span>مدیریت کامل کاربران، حذف run، عملیات حساس و تنظیمات.</span></div>
+                    <div class="workflow-item"><strong>Operator</strong><span>تحلیل تکی، تحلیل مجدد همه، خروجی گزارش و عملیات روزانه.</span></div>
+                    <div class="workflow-item"><strong>Reviewer</strong><span>ثبت فیدبک و بررسی کیفیت مشابه‌ها در مرحله بعد.</span></div>
+                    <div class="workflow-item"><strong>Viewer</strong><span>فقط مشاهده محصولات، وضعیت تحلیل و نتایج.</span></div>
+                </div>
+            </div>
+            <div class="management-card">
+                <span class="management-kicker">Next Step</span>
+                <h2>اتصال به OAuth باسلام</h2>
+                <p class="management-description">
+                    بعد از تأیید UI، callback ورود با باسلام اضافه می‌شود؛ کاربر جدید با وضعیت «در انتظار تأیید» ثبت می‌شود و تا زمان تأیید مدیر وارد workspace اصلی نمی‌شود.
+                </p>
+            </div>
+        </aside>
+    </section>
+</section>
+{% endblock %}
