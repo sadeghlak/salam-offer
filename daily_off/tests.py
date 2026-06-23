@@ -1,7 +1,10 @@
 from datetime import date
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.test import RequestFactory, SimpleTestCase, TestCase
+
+from config.settings import database_url_with_resolvable_service_host
 
 from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
 from .category_catalog import resolve_category_path
@@ -10,6 +13,30 @@ from .models import AnalysisCandidate, DailyProductSnapshot, DailyRun, Product
 from .semantic_rules import compare_semantic_cues
 from .services import requeue_run_analysis
 from .views import build_run_context, export_run_analysis_candidates_csv
+
+
+class DatabaseUrlFallbackTests(SimpleTestCase):
+    def test_rewrites_unresolvable_titan_postgres_stack_host_to_resolvable_service_host(self):
+        database_url = 'postgresql://user:pass@data-test.salam-test.svc.cluster.local:5432/dbname'
+
+        def fake_resolvable_host(hostname):
+            return hostname == 'data-test-postgresql-ha-pgpool.salam-test.svc.cluster.local'
+
+        with patch('config.settings.resolvable_host', side_effect=fake_resolvable_host):
+            rewritten = database_url_with_resolvable_service_host(database_url)
+
+        self.assertEqual(
+            rewritten,
+            'postgresql://user:pass@data-test-postgresql-ha-pgpool.salam-test.svc.cluster.local:5432/dbname',
+        )
+
+    def test_keeps_original_database_url_when_host_is_resolvable(self):
+        database_url = 'postgresql://user:pass@db.example.com:5432/dbname'
+
+        with patch('config.settings.resolvable_host', return_value=True):
+            rewritten = database_url_with_resolvable_service_host(database_url)
+
+        self.assertEqual(rewritten, database_url)
 
 
 class SemanticRulesTests(SimpleTestCase):
