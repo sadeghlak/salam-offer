@@ -118,6 +118,8 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://<domain>
 
 برای worker هم همان `DATABASE_URL` وب همان محیط باید استفاده شود تا هر دو به یک دیتابیس وصل باشند.
 
+نکته Titan staging: اگر `DATABASE_URL` به host کوتاه stack مثل `data-test.salam-test.svc.cluster.local` اشاره کند و DNS resolve نشود، settings پروژه به‌صورت محافظه‌کارانه hostهای سرویس PostgreSQL HA همان stack (`*-postgresql-ha-pgpool`, `*-postgresql-ha-postgresql`, `*-postgresql-ha-keeper`) را امتحان می‌کند و فقط اگر یکی resolve شد همان را جایگزین می‌کند. راه‌حل ترجیحی بلندمدت همچنان تنظیم host درست در env است.
+
 ## 4. فایل‌ها و ماژول‌های اصلی
 
 ### 4.1 Models

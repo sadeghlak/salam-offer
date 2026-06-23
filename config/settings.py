@@ -11,8 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import socket
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +30,46 @@ def env_bool(name, default=False):
     if value is None:
         return default
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def resolvable_host(hostname):
+    if not hostname:
+        return False
+    try:
+        socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        return False
+    return True
+
+
+def database_url_with_resolvable_service_host(database_url):
+    parsed = urlparse(database_url)
+    hostname = parsed.hostname
+    if not hostname or resolvable_host(hostname):
+        return database_url
+
+    host_parts = hostname.split('.')
+    if len(host_parts) < 5 or host_parts[2:] != ['svc', 'cluster', 'local']:
+        return database_url
+
+    stack_name = host_parts[0]
+    namespace = host_parts[1]
+    fallback_hosts = [
+        f'{stack_name}-postgresql-ha-pgpool.{namespace}.svc.cluster.local',
+        f'{stack_name}-postgresql-ha-postgresql.{namespace}.svc.cluster.local',
+        f'{stack_name}-postgresql-ha-keeper.{namespace}.svc.cluster.local',
+    ]
+    original_netloc = parsed.netloc
+    credentials = ''
+    if '@' in original_netloc:
+        credentials = f'{original_netloc.rsplit("@", 1)[0]}@'
+
+    port = f':{parsed.port}' if parsed.port else ''
+    for fallback_host in fallback_hosts:
+        if resolvable_host(fallback_host):
+            return urlunparse(parsed._replace(netloc=f'{credentials}{fallback_host}{port}'))
+
+    return database_url
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -89,6 +130,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
+    DATABASE_URL = database_url_with_resolvable_service_host(DATABASE_URL)
     parsed_database_url = urlparse(DATABASE_URL)
     database_options = {}
     query_options = parse_qs(parsed_database_url.query)
