@@ -39,6 +39,30 @@ class DatabaseUrlFallbackTests(SimpleTestCase):
         self.assertEqual(rewritten, database_url)
 
 
+class DatabaseUrlFallbackTests(SimpleTestCase):
+    def test_rewrites_unresolvable_titan_postgres_stack_host_to_resolvable_service_host(self):
+        database_url = 'postgresql://user:pass@data-test.salam-test.svc.cluster.local:5432/dbname'
+
+        def fake_resolvable_host(hostname):
+            return hostname == 'data-test-postgresql-ha-pgpool.salam-test.svc.cluster.local'
+
+        with patch('config.settings.resolvable_host', side_effect=fake_resolvable_host):
+            rewritten = database_url_with_resolvable_service_host(database_url)
+
+        self.assertEqual(
+            rewritten,
+            'postgresql://user:pass@data-test-postgresql-ha-pgpool.salam-test.svc.cluster.local:5432/dbname',
+        )
+
+    def test_keeps_original_database_url_when_host_is_resolvable(self):
+        database_url = 'postgresql://user:pass@db.example.com:5432/dbname'
+
+        with patch('config.settings.resolvable_host', return_value=True):
+            rewritten = database_url_with_resolvable_service_host(database_url)
+
+        self.assertEqual(rewritten, database_url)
+
+
 class SemanticRulesTests(SimpleTestCase):
     def assertBlocked(self, source, candidate, reason):
         comparison = compare_semantic_cues(source_title=source, source_text=source, candidate_title=candidate, candidate_text=candidate)
