@@ -696,13 +696,18 @@ def candidate_log_rows(rows):
     ]
 
 
-def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_analysis'):
+def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_analysis', persist_logs=True):
     config = config or AnalysisConfig()
-    log_analysis_status(snapshot=snapshot, event_type=AnalysisStatusLog.EventType.STARTED, message='تحلیل محصول شروع شد.', request_id=request_id, actor=actor)
-    log_analysis_status(snapshot=snapshot, event_type=AnalysisStatusLog.EventType.SEARCH_STARTED, message='جستجوی محصولات مشابه شروع شد.', request_id=request_id, actor=actor)
+
+    def emit_log(**kwargs):
+        if persist_logs:
+            log_analysis_status(**kwargs)
+
+    emit_log(snapshot=snapshot, event_type=AnalysisStatusLog.EventType.STARTED, message='تحلیل محصول شروع شد.', request_id=request_id, actor=actor)
+    emit_log(snapshot=snapshot, event_type=AnalysisStatusLog.EventType.SEARCH_STARTED, message='جستجوی محصولات مشابه شروع شد.', request_id=request_id, actor=actor)
 
     text_results = search_by_text(snapshot, config)
-    log_analysis_status(
+    emit_log(
         snapshot=snapshot,
         event_type=AnalysisStatusLog.EventType.TEXT_SEARCH_COMPLETED,
         message='جستجوی متنی کامل شد.',
@@ -714,7 +719,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
     try:
         image_results = search_by_image(snapshot, config)
         image_event = AnalysisStatusLog.EventType.IMAGE_SEARCH_COMPLETED if image_results else AnalysisStatusLog.EventType.IMAGE_SEARCH_SKIPPED
-        log_analysis_status(
+        emit_log(
             snapshot=snapshot,
             event_type=image_event,
             message='جستجوی تصویری کامل شد.' if image_results else 'جستجوی تصویری نتیجه‌ای نداشت یا عکس موجود نبود.',
@@ -724,7 +729,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
         )
     except Exception as exc:
         image_results = []
-        log_analysis_status(
+        emit_log(
             snapshot=snapshot,
             event_type=AnalysisStatusLog.EventType.IMAGE_SEARCH_SKIPPED,
             message=f'جستجوی تصویری به دلیل خطا رد شد: {exc}',
@@ -739,7 +744,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
         image_results=image_results,
         detail_fetch_limit=config.detail_fetch_limit,
     )
-    log_analysis_status(
+    emit_log(
         snapshot=snapshot,
         event_type=AnalysisStatusLog.EventType.CANDIDATES_DEDUPED,
         message='کاندیداهای مشابه یکتا شدند.',
@@ -750,7 +755,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
 
     filtered_candidates, prefilter_rejections = prefilter_candidates(snapshot=snapshot, candidates=deduped, config=config)
     if prefilter_rejections:
-        log_analysis_status(
+        emit_log(
             snapshot=snapshot,
             event_type=AnalysisStatusLog.EventType.CANDIDATES_DEDUPED,
             message='کاندیداهای کم‌کیفیت قبل از دریافت جزئیات حذف شدند.',
@@ -770,7 +775,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
         try:
             detailed.append(fetch_candidate_detail(candidate, config))
         except Exception as exc:
-            log_analysis_status(
+            emit_log(
                 snapshot=snapshot,
                 event_type=AnalysisStatusLog.EventType.ERROR,
                 message=f'خطای دریافت جزئیات کاندیدا {candidate.get("candidate_id")}: {exc}',
@@ -788,7 +793,7 @@ def analyze_snapshot(snapshot, *, config=None, request_id='', actor='django_anal
         detail_count=len(detailed),
         prefilter_rejections=prefilter_rejections,
     )
-    log_analysis_status(
+    emit_log(
         snapshot=snapshot,
         event_type=AnalysisStatusLog.EventType.CANDIDATES_SCORED,
         message='امتیازدهی کاندیداها کامل شد.',

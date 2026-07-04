@@ -6,6 +6,7 @@ app_name = 'daily_off'
 
 urlpatterns = [
     path('', views.dashboard_home, name='dashboard'),
+    path('test-product/', views.test_product, name='test_product'),
     path('management/users/', views.management_users_dashboard, name='management_users'),
     path('runs/<uuid:run_key>/', views.run_detail, name='run_detail'),
     path('runs/<uuid:run_key>/delete/', views.delete_run, name='delete_run'),

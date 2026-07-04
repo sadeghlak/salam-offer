@@ -9,9 +9,13 @@ from config.settings import database_url_with_resolvable_service_host
 from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
 from .category_catalog import resolve_category_path
 from .family_router import route_family, route_product_family
-from .models import AnalysisCandidate, DailyProductSnapshot, DailyRun, Product
+from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .semantic_rules import compare_semantic_cues
-from .services import requeue_run_analysis
+from .services import (
+    analyze_test_product,
+    requeue_run_analysis,
+    unwrap_product_detail_payload,
+)
 from .views import build_run_context, export_run_analysis_candidates_csv
 
 
@@ -454,3 +458,88 @@ class ScoreCandidateSemanticBlockerTests(SimpleTestCase):
         self.assertEqual(result.raw_candidate['family_routing']['source']['family'], 'tools')
         self.assertEqual(result.raw_candidate['family_routing']['candidate']['family'], 'tools')
         self.assertEqual(DailyProductSnapshot.AnalysisStatus.PENDING, 'analysis_pending')
+
+class ManualProductLabTests(TestCase):
+    def test_unwrap_product_detail_payload_supports_common_shapes(self):
+        self.assertEqual(unwrap_product_detail_payload({'id': 1})['id'], 1)
+        self.assertEqual(unwrap_product_detail_payload({'data': {'id': 2}})['id'], 2)
+        self.assertEqual(unwrap_product_detail_payload({'result': {'id': 3}})['id'], 3)
+        self.assertEqual(unwrap_product_detail_payload({'product': {'id': 4}})['id'], 4)
+
+    @patch('daily_off.analysis_engine.fetch_candidate_detail')
+    @patch('daily_off.analysis_engine.search_by_image', return_value=[])
+    @patch('daily_off.analysis_engine.search_by_text', return_value=[])
+    @patch('daily_off.services.fetch_product_detail')
+    def test_test_product_analysis_does_not_write_to_database(self, fetch_product_detail, search_by_text, search_by_image, fetch_candidate_detail):
+        fetch_product_detail.return_value = {
+            'id': 100,
+            'title': 'زعفران تست یک گرم',
+            'price': 900000,
+            'primary_price': 1000000,
+            'category': {'title': 'زعفران'},
+            'vendor': {'identifier': 'test-vendor', 'title': 'غرفه تست'},
+            'unit_type': {'name': 'گرم'},
+            'net_weight': 1,
+        }
+
+        result = analyze_test_product(product_id=100)
+
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['snapshot'].source_product_id, 100)
+        self.assertEqual(result['result_payload']['analysis_status'], DailyProductSnapshot.AnalysisStatus.NO_MATCH)
+        self.assertEqual(DailyRun.objects.count(), 0)
+        self.assertEqual(Product.objects.count(), 0)
+        self.assertEqual(DailyProductSnapshot.objects.count(), 0)
+        self.assertEqual(AnalysisCandidate.objects.count(), 0)
+        self.assertEqual(AnalysisStatusLog.objects.count(), 0)
+
+    @patch('daily_off.views.analyze_test_product')
+    def test_dashboard_test_product_tab_renders_without_manual_page(self, analyze_test_product_mock):
+        snapshot = SimpleNamespace(
+            source_product_id=200,
+            title='محصول تست',
+            price=500000,
+            primary_price=600000,
+            photo_url='',
+            category_title='زعفران',
+            vendor_name='غرفه تست',
+            vendor_identifier='test-vendor',
+            weight_text='1 گرم',
+        )
+        analyze_test_product_mock.return_value = {
+            'ok': True,
+            'request_id': 'req-test',
+            'snapshot': snapshot,
+            'product_url': 'https://basalam.com/test-vendor/product/200',
+            'result_payload': {
+                'analysis_status': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+                'accepted_candidates_count': 0,
+                'candidates_seen_count': 0,
+                'candidates_deduped_count': 0,
+                'candidate_details_fetched_count': 0,
+                'candidate_prefilter_rejected_count': 0,
+                'product_url1': '',
+                'product_url2': '',
+                'product_url3': '',
+                'accepted_candidates': [],
+                'rejected_candidates': [],
+            },
+        }
+
+        response = self.client.post('/test-product/', {'action': 'test_product', 'product_id': '200'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'تست محصول')
+        self.assertContains(response, 'محصول تست')
+        self.assertNotContains(response, '/manual-analysis/')
+
+    def test_daily_off_run_creation_still_uses_default_source_type(self):
+        response = self.client.post(
+            '/api/runs/',
+            data='{"business_date": "2026-07-02", "input_count": 2}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        run = DailyRun.objects.get(business_date=date(2026, 7, 2), source_type='daily_off_query')
+        self.assertEqual(run.input_count, 2)

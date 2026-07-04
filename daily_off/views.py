@@ -18,6 +18,7 @@ from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, 
 from .services import (
     analysis_counts_for_run,
     analysis_payload_for_run,
+    analyze_test_product,
     claim_pending_analysis,
     create_or_update_run,
     enqueue_snapshot_analysis,
@@ -826,6 +827,7 @@ def build_dashboard_context(request, selected_run=None):
         'selected_run': selected_run,
         'today': today,
         'totals': dashboard_totals(),
+        'active_page': 'dashboard',
     }
     if selected_run is not None:
         context.update(build_run_context(request, selected_run))
@@ -874,8 +876,40 @@ def management_users_dashboard(request):
     })
 
 
+def test_product_context(*, product_id='', error_message='', analysis=None):
+    return {
+        'active_page': 'test-product',
+        'test_product_id': product_id,
+        'test_error_message': error_message,
+        'test_analysis': analysis,
+    }
+
+
 def dashboard_home(request):
     return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
+
+
+def test_product(request):
+    context = build_dashboard_context(request)
+    context.update(test_product_context())
+    if request.method == 'POST' and request.POST.get('action') == 'test_product':
+        product_id_text = request.POST.get('product_id') or ''
+        product_id = parse_int(product_id_text)
+        if not product_id:
+            context.update(test_product_context(
+                product_id=product_id_text,
+                error_message='شناسه محصول معتبر وارد کنید.',
+            ))
+            return render(request, 'daily_off/dashboard.html', context)
+        try:
+            result = analyze_test_product(product_id=product_id, actor='ui_dashboard_test_product')
+            context.update(test_product_context(product_id=str(product_id), analysis=result))
+        except ValueError as exc:
+            context.update(test_product_context(product_id=str(product_id), error_message=str(exc)))
+        except Exception as exc:
+            logger.exception('test product analysis failed product_id=%s', product_id)
+            context.update(test_product_context(product_id=str(product_id), error_message=f'خطا در تست محصول: {exc}'))
+    return render(request, 'daily_off/dashboard.html', context)
 
 
 def run_detail(request, run_key):

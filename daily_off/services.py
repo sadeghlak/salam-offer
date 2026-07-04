@@ -1,8 +1,13 @@
 from datetime import date
+import json
 import logging
+from types import SimpleNamespace
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from uuid import uuid4
 
+from django.conf import settings
 from django.db import connection, transaction
 from django.db.models import Count
 from django.utils import timezone
@@ -92,6 +97,89 @@ def product_url(product_id, vendor_identifier=''):
     return f'https://basalam.com/product/{product_id}'
 
 
+def unwrap_product_detail_payload(payload):
+    if not isinstance(payload, dict):
+        raise ValueError('product detail response is not an object')
+    for key in ('data', 'result', 'product'):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            return value
+    return payload
+
+
+def fetch_product_detail(product_id, timeout=None):
+    product_id = as_int(product_id)
+    if not product_id:
+        raise ValueError('product_id is required')
+
+    url = settings.BASALAM_PRODUCT_DETAIL_URL_TEMPLATE.format(product_id=product_id)
+    request = Request(url, headers={'Accept': 'application/json', 'User-Agent': 'SalamOffer/1.0'})
+    try:
+        with urlopen(request, timeout=timeout or settings.CHEAPER_ANALYSIS_REQUEST_TIMEOUT_SECONDS) as response:
+            payload = json.loads(response.read().decode('utf-8') or '{}')
+    except HTTPError as exc:
+        raise ValueError(f'خطا در دریافت محصول از باسلام: HTTP {exc.code}') from exc
+    except (URLError, TimeoutError) as exc:
+        raise ValueError(f'خطا در اتصال به API محصول باسلام: {exc}') from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError('پاسخ API محصول باسلام JSON معتبر نیست') from exc
+
+    product = unwrap_product_detail_payload(payload)
+    if not as_int(product.get('id') or product.get('product_id')):
+        product['id'] = product_id
+    return product
+
+
+def build_ephemeral_snapshot(raw_product):
+    normalized = normalize_product(raw_product)
+    product_id = normalized['source_product_id']
+    return SimpleNamespace(
+        id=f'test-{product_id}',
+        pk=None,
+        run=None,
+        product=None,
+        business_date=timezone.localdate(),
+        captured_at=timezone.now(),
+        **normalized,
+    )
+
+
+def analysis_result_summary(result):
+    return {
+        'snapshot_id': result.snapshot_id,
+        'product_id': result.product_id,
+        'product_url1': result.product_url1,
+        'product_url2': result.product_url2,
+        'product_url3': result.product_url3,
+        'accepted_candidates_count': result.accepted_candidates_count,
+        'analysis_status': result.analysis_status,
+        'status_row': result.status_row,
+        'candidates_seen_count': result.candidates_seen_count,
+        'candidates_deduped_count': result.candidates_deduped_count,
+        'candidate_details_fetched_count': result.candidate_details_fetched_count,
+        'candidate_prefilter_rejected_count': result.candidate_prefilter_rejected_count,
+        'accepted_candidates': [row.to_candidate_payload() for row in result.accepted_candidates],
+        'rejected_candidates': [row.to_candidate_payload() for row in result.rejected_candidates[:10]],
+    }
+
+
+def analyze_test_product(*, product_id, request_id='', actor='ui_test_product'):
+    from .analysis_engine import analyze_snapshot
+
+    request_id = request_id or make_request_id()
+    raw_product = fetch_product_detail(product_id)
+    snapshot = build_ephemeral_snapshot(raw_product)
+    result = analyze_snapshot(snapshot, request_id=request_id, actor=actor, persist_logs=False)
+    return {
+        'ok': True,
+        'request_id': request_id,
+        'snapshot': snapshot,
+        'product_url': product_url(snapshot.source_product_id, snapshot.vendor_identifier),
+        'result': result,
+        'result_payload': analysis_result_summary(result),
+    }
+
+
 def attributes_text(raw_product):
     attrs = raw_product.get('attributes') or []
     parts = []
@@ -168,11 +256,12 @@ def create_or_update_run(*, business_date=None, run_key=None, input_count=0, sta
     if run_key:
         run = DailyRun.objects.filter(run_key=run_key).first()
         if run is None:
-            run = DailyRun.objects.filter(business_date=business_date).first()
+            run = DailyRun.objects.filter(business_date=business_date, source_type='daily_off_query').first()
         if run is None:
             run = DailyRun.objects.create(
                 run_key=run_key,
                 business_date=business_date,
+                source_type='daily_off_query',
                 status=status,
                 input_count=input_count,
                 config_json=incoming_config,
@@ -181,10 +270,11 @@ def create_or_update_run(*, business_date=None, run_key=None, input_count=0, sta
             )
             return run
     else:
-        run = DailyRun.objects.filter(business_date=business_date).first()
+        run = DailyRun.objects.filter(business_date=business_date, source_type='daily_off_query').first()
         if run is None:
             run = DailyRun.objects.create(
                 business_date=business_date,
+                source_type='daily_off_query',
                 status=status,
                 input_count=input_count,
                 config_json=incoming_config,

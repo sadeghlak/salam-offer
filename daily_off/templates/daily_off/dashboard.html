@@ -9,12 +9,12 @@
         <span class="ops-brand-title">Salam Offer</span>
     </a>
     <nav class="ops-nav">
-        <a class="ops-nav-link active" href="{% url 'daily_off:dashboard' %}"><span class="ops-nav-dot"></span>خانه</a>
+        <a class="ops-nav-link {% if active_page != 'test-product' %}active{% endif %}" href="{% url 'daily_off:dashboard' %}"><span class="ops-nav-dot"></span>خانه</a>
         <div class="ops-sidebar-menu">
             <button class="ops-nav-link has-menu" type="button"><span class="ops-nav-dot"></span>اجراها <span class="ops-nav-caret">‹</span></button>
             <div class="ops-sidebar-dropdown" role="menu">
                 {% for sidebar_run in sidebar_runs %}
-                    <a class="ops-run-option {% if selected_run and sidebar_run.run_key == selected_run.run_key %}active{% endif %}" href="{% url 'daily_off:run_detail' sidebar_run.run_key %}">
+                    <a class="ops-run-option {% if active_page != 'test-product' and selected_run and sidebar_run.run_key == selected_run.run_key %}active{% endif %}" href="{% url 'daily_off:run_detail' sidebar_run.run_key %}">
                         <span class="ops-run-option-title">
                             <span>{{ sidebar_run.business_date|jalali_date }}</span>
                             {% if sidebar_run.is_today %}<span class="badge ok">امروز</span>{% endif %}
@@ -30,6 +30,7 @@
             </div>
         </div>
         {% if selected_run %}<a class="ops-nav-link" href="{% url 'daily_off:export_run_analysis_candidates_csv' selected_run.run_key %}"><span class="ops-nav-dot"></span>گزارش‌گیری</a>{% endif %}
+        <a class="ops-nav-link {% if active_page == 'test-product' %}active{% endif %}" href="{% url 'daily_off:test_product' %}"><span class="ops-nav-dot"></span>تست محصول</a>
     </nav>
 </aside>
 {% endblock %}
@@ -43,7 +44,66 @@
     </div>
     <span class="muted">Daily Off Workspace</span>
 </nav>
-{% if selected_run %}
+
+{% if active_page == 'test-product' %}
+<section class="ops-workspace">
+    <header class="ops-topbar">
+        <div class="ops-title">
+            <div>
+                <h1>تست محصول</h1>
+                <div class="ops-title-meta">شناسه محصول را وارد کن تا بدون ذخیره در دیتابیس، اطلاعات محصول دریافت و تحلیل ارزان‌تر بودن بررسی شود.</div>
+            </div>
+        </div>
+    </header>
+
+    <form class="ops-toolbar" method="post" action="{% url 'daily_off:test_product' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="test_product">
+        <div class="toolbar-search">
+            <input class="inline-field" type="number" name="product_id" value="{{ test_product_id }}" placeholder="Product ID" required>
+        </div>
+        <button class="btn" type="submit">دریافت و تحلیل محصول</button>
+        <span class="muted">این تست هیچ محصول، اسنپ‌شات، اجرا یا کاندیدایی در دیتابیس ذخیره نمی‌کند.</span>
+    </form>
+
+    {% if test_error_message %}<div class="error-note">{{ test_error_message }}</div>{% endif %}
+
+    {% if test_analysis %}
+        {% with snapshot=test_analysis.snapshot result=test_analysis.result_payload %}
+            <section class="pdp-shell">
+                <div class="pdp-gallery">
+                    {% if snapshot.photo_url %}<img class="pdp-image" src="{{ snapshot.photo_url }}" alt="{{ snapshot.title }}">{% else %}<div class="pdp-placeholder">بدون تصویر محصول</div>{% endif %}
+                </div>
+                <div class="pdp-info">
+                    <span class="hero-eyebrow">نتیجه تست بدون ذخیره</span>
+                    <h1 class="pdp-title">{{ snapshot.title|default:'بدون عنوان' }}</h1>
+                    <div class="meta-row">
+                        <span class="badge">شناسه محصول: {{ snapshot.source_product_id }}</span>
+                        <span class="badge gray">{{ snapshot.category_title|default:'بدون دسته' }}</span>
+                        <span class="badge {% if result.analysis_status == 'analyzed' %}ok{% elif result.analysis_status == 'analysis_error' %}error{% elif result.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}">{{ result.analysis_status|status_label }}</span>
+                    </div>
+                    <div class="similar-results">
+                        {% if test_analysis.product_url %}<a class="btn" href="{{ test_analysis.product_url }}" target="_blank">مشاهده محصول در باسلام</a>{% endif %}
+                        {% if result.product_url1 %}<a class="result-link" href="{{ result.product_url1 }}" target="_blank">محصول مشابه ۱</a>{% endif %}
+                        {% if result.product_url2 %}<a class="result-link" href="{{ result.product_url2 }}" target="_blank">محصول مشابه ۲</a>{% endif %}
+                        {% if result.product_url3 %}<a class="result-link" href="{{ result.product_url3 }}" target="_blank">محصول مشابه ۳</a>{% endif %}
+                        {% if not result.product_url1 and not result.product_url2 and not result.product_url3 %}<span class="badge gray">محصول مشابه ارزان‌تر پیدا نشد</span>{% endif %}
+                    </div>
+                    <div class="process-note">کاندیداهای دیده‌شده: {{ result.candidates_seen_count }} · یکتا: {{ result.candidates_deduped_count }} · جزئیات دریافت‌شده: {{ result.candidate_details_fetched_count }} · پذیرفته‌شده: {{ result.accepted_candidates_count }}</div>
+                </div>
+                <aside class="pdp-buybox">
+                    <div class="buybox-row"><span class="metric-label">قیمت محصول</span><span class="offer-price">{{ snapshot.price|toman }}</span></div>
+                    <div class="buybox-row"><span class="metric-label">قیمت اصلی</span><span class="primary-price">{{ snapshot.primary_price|toman }}</span></div>
+                    <div class="buybox-row"><span class="metric-label">فروشنده</span><span><strong>{{ snapshot.vendor_name|default:'—' }}</strong></span></div>
+                    <div class="buybox-row"><span class="metric-label">واحد/وزن</span><span>{{ snapshot.weight_text|default:'—' }}</span></div>
+                </aside>
+            </section>
+        {% endwith %}
+    {% else %}
+        <div class="product-table-panel"><div class="empty-card">برای تست، شناسه محصول را وارد کن. نتیجه روی همین صفحه نمایش داده می‌شود و در دیتابیس ذخیره نمی‌شود.</div></div>
+    {% endif %}
+</section>
+{% elif selected_run %}
 <section class="ops-dashboard-grid">
     <section class="ops-center">
     <header class="ops-topbar">
@@ -179,6 +239,21 @@
     </section>
     </section>
 </section>
+{% else %}
+<section class="ops-workspace">
+    <header class="ops-topbar">
+        <div class="ops-title">
+            <div>
+                <h1>محصولات Daily Off</h1>
+                <div class="ops-title-meta">هنوز اجرای روزانه‌ای ثبت نشده است.</div>
+            </div>
+        </div>
+    </header>
+    <div class="product-table-panel">
+        <div class="empty-card">بعد از import روزانه، لیست محصولات اجرای امروز اینجا نمایش داده می‌شود.</div>
+    </div>
+</section>
+{% endif %}
 
 <script>
 (function () {
@@ -383,19 +458,4 @@
   }
 })();
 </script>
-{% else %}
-<section class="ops-workspace">
-    <header class="ops-topbar">
-        <div class="ops-title">
-            <div>
-                <h1>محصولات Daily Off</h1>
-                <div class="ops-title-meta">هنوز اجرای روزانه‌ای ثبت نشده است.</div>
-            </div>
-        </div>
-    </header>
-    <div class="product-table-panel">
-        <div class="empty-card">بعد از import روزانه، لیست محصولات اجرای امروز اینجا نمایش داده می‌شود.</div>
-    </div>
-</section>
-{% endif %}
 {% endblock %}
