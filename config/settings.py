@@ -75,8 +75,11 @@ def database_url_with_resolvable_service_host(database_url):
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DJANGO_DEBUG', default=False)
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,salam-offer.titanapp.dev').split(',') if host.strip()]
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://salam-offer.titanapp.dev').split(',') if origin.strip()]
+DEFAULT_ALLOWED_HOSTS = '127.0.0.1,localhost,salam-offer.titanapp.dev,daily-off.titanapp.dev'
+DEFAULT_CSRF_TRUSTED_ORIGINS = 'https://salam-offer.titanapp.dev,https://daily-off.titanapp.dev'
+
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',') if host.strip()]
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', DEFAULT_CSRF_TRUSTED_ORIGINS).split(',') if origin.strip()]
 CSRF_COOKIE_SECURE = env_bool('DJANGO_CSRF_COOKIE_SECURE', default=not DEBUG)
 SESSION_COOKIE_SECURE = env_bool('DJANGO_SESSION_COOKIE_SECURE', default=not DEBUG)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
