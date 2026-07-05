@@ -4,6 +4,7 @@ from datetime import date
 from html import escape
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db import DatabaseError, OperationalError, ProgrammingError
 from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -889,8 +890,25 @@ def healthz(request):
     return JsonResponse({'ok': True, 'service': 'salam-offer'})
 
 
+def dashboard_fallback_context():
+    return {
+        'runs': [],
+        'sidebar_runs': [],
+        'selected_run': None,
+        'today': timezone.localdate(),
+        'totals': {},
+        'active_page': 'dashboard',
+    }
+
+
 def dashboard_home(request):
-    return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
+    try:
+        context = build_dashboard_context(request)
+    except (DatabaseError, OperationalError, ProgrammingError) as exc:
+        logger.exception('dashboard database context failed')
+        messages.warning(request, f'داشبورد موقتاً بدون داده نمایش داده می‌شود؛ اتصال یا migration دیتابیس نیاز به بررسی دارد: {exc}')
+        context = dashboard_fallback_context()
+    return render(request, 'daily_off/dashboard.html', context)
 
 
 def test_product_page_context(*, product_id='', error_message='', analysis=None):

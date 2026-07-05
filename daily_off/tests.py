@@ -2,6 +2,7 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.db import OperationalError
 from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from config.settings import database_url_with_resolvable_service_host
@@ -465,6 +466,16 @@ class HealthzTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'ok': True, 'service': 'salam-offer'})
+
+
+class DashboardFallbackTests(SimpleTestCase):
+    @patch('daily_off.views.build_dashboard_context', side_effect=OperationalError('missing table'))
+    def test_dashboard_renders_fallback_when_database_context_fails(self, build_dashboard_context_mock):
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'محصولات Daily Off')
+        self.assertContains(response, 'داشبورد موقتاً بدون داده نمایش داده می‌شود')
 
 
 class TestProductPageDatabaseFreeTests(SimpleTestCase):
