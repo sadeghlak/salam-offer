@@ -5,6 +5,7 @@ from . import views
 app_name = 'daily_off'
 
 urlpatterns = [
+    path('healthz/', views.healthz, name='healthz'),
     path('', views.dashboard_home, name='dashboard'),
     path('test-product/', views.test_product, name='test_product'),
     path('management/users/', views.management_users_dashboard, name='management_users'),

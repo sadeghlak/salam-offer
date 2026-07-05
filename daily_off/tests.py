@@ -459,6 +459,14 @@ class ScoreCandidateSemanticBlockerTests(SimpleTestCase):
         self.assertEqual(result.raw_candidate['family_routing']['candidate']['family'], 'tools')
         self.assertEqual(DailyProductSnapshot.AnalysisStatus.PENDING, 'analysis_pending')
 
+class HealthzTests(SimpleTestCase):
+    def test_healthz_does_not_touch_database(self):
+        response = self.client.get('/healthz/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'ok': True, 'service': 'salam-offer'})
+
+
 class ManualProductLabTests(TestCase):
     def test_unwrap_product_detail_payload_supports_common_shapes(self):
         self.assertEqual(unwrap_product_detail_payload({'id': 1})['id'], 1)

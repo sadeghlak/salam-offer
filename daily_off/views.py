@@ -885,6 +885,10 @@ def test_product_context(*, product_id='', error_message='', analysis=None):
     }
 
 
+def healthz(request):
+    return JsonResponse({'ok': True, 'service': 'salam-offer'})
+
+
 def dashboard_home(request):
     return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
 
