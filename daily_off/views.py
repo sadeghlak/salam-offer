@@ -893,26 +893,37 @@ def dashboard_home(request):
     return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
 
 
+def test_product_page_context(*, product_id='', error_message='', analysis=None):
+    context = {
+        'runs': [],
+        'sidebar_runs': [],
+        'selected_run': None,
+        'today': timezone.localdate(),
+        'totals': {},
+    }
+    context.update(test_product_context(product_id=product_id, error_message=error_message, analysis=analysis))
+    return context
+
+
 def test_product(request):
-    context = build_dashboard_context(request)
-    context.update(test_product_context())
+    context = test_product_page_context()
     if request.method == 'POST' and request.POST.get('action') == 'test_product':
         product_id_text = request.POST.get('product_id') or ''
         product_id = parse_int(product_id_text)
         if not product_id:
-            context.update(test_product_context(
+            context = test_product_page_context(
                 product_id=product_id_text,
                 error_message='شناسه محصول معتبر وارد کنید.',
-            ))
+            )
             return render(request, 'daily_off/dashboard.html', context)
         try:
             result = analyze_test_product(product_id=product_id, actor='ui_dashboard_test_product')
-            context.update(test_product_context(product_id=str(product_id), analysis=result))
+            context = test_product_page_context(product_id=str(product_id), analysis=result)
         except ValueError as exc:
-            context.update(test_product_context(product_id=str(product_id), error_message=str(exc)))
+            context = test_product_page_context(product_id=str(product_id), error_message=str(exc))
         except Exception as exc:
             logger.exception('test product analysis failed product_id=%s', product_id)
-            context.update(test_product_context(product_id=str(product_id), error_message=f'خطا در تست محصول: {exc}'))
+            context = test_product_page_context(product_id=str(product_id), error_message=f'خطا در تست محصول: {exc}')
     return render(request, 'daily_off/dashboard.html', context)
 
 
