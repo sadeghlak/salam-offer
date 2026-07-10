@@ -12,6 +12,7 @@ from django.conf import settings
 
 from .family_router import route_product_family
 from .models import AnalysisStatusLog, DailyProductSnapshot
+from .product_identity import compare_product_identities, extract_candidate_identity, extract_snapshot_identity, plan_search_queries
 from .services import as_float, as_int, clean_string, log_analysis_status, nested_get, product_url
 from .semantic_rules import compare_semantic_cues
 from .unit_rules import canonical_unit, compare_measurements, normalize_measurement
@@ -26,6 +27,8 @@ class AnalysisConfig:
     min_cheaper_delta: int = settings.CHEAPER_ANALYSIS_MIN_CHEAPER_DELTA
     request_timeout_seconds: float = settings.CHEAPER_ANALYSIS_REQUEST_TIMEOUT_SECONDS
     enable_image_search: bool = settings.CHEAPER_ANALYSIS_ENABLE_IMAGE_SEARCH
+    enable_multi_query: bool = settings.CHEAPER_ANALYSIS_ENABLE_MULTI_QUERY
+    text_search_max_queries: int = settings.CHEAPER_ANALYSIS_TEXT_SEARCH_MAX_QUERIES
     score_weights: dict = field(default_factory=lambda: settings.CHEAPER_ANALYSIS_SCORE_WEIGHTS.copy())
 
 
@@ -286,9 +289,9 @@ def extract_products(body):
     return []
 
 
-def normalize_search_product(product, *, snapshot, source_name, rank):
+def normalize_search_product(product, *, snapshot, source_name, rank, query_spec=None):
     base = source_dict(snapshot)
-    return {
+    row = {
         **base,
         'candidate_id': as_int(product.get('id')),
         'candidate_title': product.get('name') or product.get('title') or '',
@@ -306,21 +309,36 @@ def normalize_search_product(product, *, snapshot, source_name, rank):
         'search_source': source_name,
         'search_rank': rank,
     }
+    if query_spec:
+        row.update({
+            'search_query': query_spec.query,
+            'search_query_kind': query_spec.kind,
+            'search_query_priority': query_spec.priority,
+        })
+    return row
 
 
 def search_by_text(snapshot, config):
-    query = urlencode({
-        'q': snapshot.title,
-        'from': 0,
-        'size': config.text_search_size,
-        'dynamicFacets': 'false',
-        'grouped': 'false',
-        'adsImpressionDisable': 'true',
-        'enableNavigations': 'false',
-    })
-    body = http_json_get(f'{settings.BASALAM_TEXT_SEARCH_URL}?{query}', timeout=config.request_timeout_seconds)
-    products = extract_products(body)[:config.text_search_size]
-    return [normalize_search_product(product, snapshot=snapshot, source_name='text', rank=index + 1) for index, product in enumerate(products)]
+    results = []
+    max_queries = config.text_search_max_queries if config.enable_multi_query else 1
+    for query_spec in plan_search_queries(snapshot, max_queries=max_queries):
+        query = urlencode({
+            'q': query_spec.query,
+            'from': 0,
+            'size': config.text_search_size,
+            'dynamicFacets': 'false',
+            'grouped': 'false',
+            'adsImpressionDisable': 'true',
+            'enableNavigations': 'false',
+        })
+        body = http_json_get(f'{settings.BASALAM_TEXT_SEARCH_URL}?{query}', timeout=config.request_timeout_seconds)
+        products = extract_products(body)[:config.text_search_size]
+        source_name = f'text:{query_spec.kind}'
+        results.extend([
+            normalize_search_product(product, snapshot=snapshot, source_name=source_name, rank=index + 1, query_spec=query_spec)
+            for index, product in enumerate(products)
+        ])
+    return results
 
 
 def search_by_image(snapshot, config):
@@ -348,14 +366,37 @@ def dedupe_candidates(*, source_snapshot, text_results, image_results, detail_fe
         if candidate_id not in mapped:
             row = item.copy()
             row['search_sources'] = [item.get('search_source')]
+            row['search_queries'] = []
+            if item.get('search_query'):
+                row['search_queries'].append({
+                    'query': item.get('search_query'),
+                    'kind': item.get('search_query_kind'),
+                    'priority': item.get('search_query_priority'),
+                    'rank': item.get('search_rank'),
+                })
             mapped[candidate_id] = row
             continue
         existing = mapped[candidate_id]
         existing['search_sources'] = sorted(set([*(existing.get('search_sources') or []), item.get('search_source')]))
+        existing.setdefault('search_queries', [])
+        if item.get('search_query'):
+            existing['search_queries'].append({
+                'query': item.get('search_query'),
+                'kind': item.get('search_query_kind'),
+                'priority': item.get('search_query_priority'),
+                'rank': item.get('search_rank'),
+            })
         for key in ['candidate_title', 'candidate_photo', 'candidate_price', 'candidate_weight', 'candidate_vendor_identifier']:
             if not existing.get(key) and item.get(key):
                 existing[key] = item[key]
-    return list(mapped.values())[:detail_fetch_limit]
+    return sorted(
+        mapped.values(),
+        key=lambda item: (
+            min([query.get('priority', 99) for query in item.get('search_queries', [])] or [99]),
+            -(len(item.get('search_sources') or [])),
+            as_int(item.get('search_rank')),
+        ),
+    )[:detail_fetch_limit]
 
 
 def title_token_overlap(left, right):
@@ -541,6 +582,9 @@ def score_candidate(*, snapshot, candidate, config):
         source_family=source_family.get('family'),
         candidate_family=candidate_family.get('family'),
     )
+    source_identity = extract_snapshot_identity(snapshot)
+    candidate_identity = extract_candidate_identity(candidate)
+    match_policy = compare_product_identities(source_identity, candidate_identity)
     is_exact = unit_comparison.equivalent
     weight_score = unit_comparison.score
     weights = config.score_weights
@@ -558,12 +602,14 @@ def score_candidate(*, snapshot, candidate, config):
         rejection_reasons.append('similarity_below_threshold')
     rejection_reasons.extend(unit_comparison.reasons)
     rejection_reasons.extend(semantic_comparison.blocker_reasons)
+    rejection_reasons.extend(match_policy.blockers)
     accepted = (
         is_cheaper
         and final_score >= config.min_similarity
         and unit_comparison.comparable
         and unit_comparison.equivalent
         and not semantic_comparison.blocker_reasons
+        and not match_policy.blockers
     )
     if accepted:
         rejection_reasons = []
@@ -590,6 +636,14 @@ def score_candidate(*, snapshot, candidate, config):
         'semantic_accessory_main_mismatch': 'محصول اصلی با لوازم جانبی آن اشتباه گرفته شده است',
         'semantic_nut_mix_mismatch': 'ترکیب آجیل یا نوع مغزها متفاوت است',
         'semantic_material_mismatch': 'جنس یا کیفیت ذکرشده برای محصول متفاوت است',
+        'identity_person_capacity_mismatch': 'ظرفیت/تعداد نفرات محصول متفاوت است',
+        'identity_model_mismatch': 'مدل یا کد هویتی محصول متفاوت است',
+        'identity_measurement_mismatch': 'ظرفیت، حجم یا مقدار کلیدی محصول متفاوت است',
+        'identity_food_base_mismatch': 'ماده یا پایه اصلی محصول خوراکی متفاوت است',
+        'identity_food_variety_mismatch': 'گونه، رقم، طعم یا نوع محصول خوراکی متفاوت است',
+        'identity_food_form_mismatch': 'فرم یا درجه محصول خوراکی متفاوت است',
+        'identity_low_anchor_overlap': 'فقط عنوان عمومی مشترک است و نشانه هویتی کافی وجود ندارد',
+        'identity_role_mismatch': 'محصول اصلی با لوازم جانبی یا قطعه اشتباه گرفته شده است',
     }
     rejection_reason_text = '؛ '.join([reason_labels.get(reason, reason) for reason in rejection_reasons])
 
@@ -630,6 +684,9 @@ def score_candidate(*, snapshot, candidate, config):
             'candidate_title_quantity_normalized': candidate_measurement.title_normalized_quantity,
             'semantic_cues': semantic_comparison.details,
             'semantic_evidence': semantic_comparison.evidence,
+            'source_identity': source_identity.to_dict(),
+            'candidate_identity': candidate_identity.to_dict(),
+            'match_policy': match_policy.to_dict(),
             'family_routing': {
                 'source': source_family,
                 'candidate': candidate_family,

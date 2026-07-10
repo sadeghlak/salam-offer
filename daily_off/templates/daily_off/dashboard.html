@@ -45,25 +45,29 @@
     <span class="muted">Daily Off Workspace</span>
 </nav>
 
+{% if temp_sqlite_mode %}
+    <div class="error-note">حالت موقت SQLite فعال است؛ داده‌ها روی دیتابیس محلی وب ذخیره می‌شوند و ممکن است با deploy یا restart از بین بروند. تحلیل‌ها در همین سرویس وب، آرام و تک‌محصولی انجام می‌شود.</div>
+{% endif %}
+
 {% if active_page == 'test-product' %}
 <section class="ops-workspace">
     <header class="ops-topbar">
         <div class="ops-title">
             <div>
                 <h1>تست محصول</h1>
-                <div class="ops-title-meta">شناسه محصول را وارد کن تا بدون ذخیره در دیتابیس، اطلاعات محصول دریافت و تحلیل ارزان‌تر بودن بررسی شود.</div>
+                <div class="ops-title-meta">شناسه محصول را وارد کن تا اول اطلاعات محصول دریافت شود؛ تحلیل ارزان‌تر بودن را بعد از دیدن محصول جدا اجرا کن.</div>
             </div>
         </div>
     </header>
 
     <form class="ops-toolbar" method="post" action="{% url 'daily_off:test_product' %}">
         {% csrf_token %}
-        <input type="hidden" name="action" value="test_product">
+        <input type="hidden" name="action" value="fetch_test_product">
         <div class="toolbar-search">
             <input class="inline-field" type="number" name="product_id" value="{{ test_product_id }}" placeholder="Product ID" required>
         </div>
-        <button class="btn" type="submit">دریافت و تحلیل محصول</button>
-        <span class="muted">این تست هیچ محصول، اسنپ‌شات، اجرا یا کاندیدایی در دیتابیس ذخیره نمی‌کند.</span>
+        <button class="btn" type="submit">دریافت محصول</button>
+        <span class="muted">این مرحله فقط اطلاعات محصول را می‌گیرد و هیچ تحلیلی اجرا نمی‌کند.</span>
     </form>
 
     {% if test_error_message %}<div class="error-note">{{ test_error_message }}</div>{% endif %}
@@ -75,21 +79,29 @@
                     {% if snapshot.photo_url %}<img class="pdp-image" src="{{ snapshot.photo_url }}" alt="{{ snapshot.title }}">{% else %}<div class="pdp-placeholder">بدون تصویر محصول</div>{% endif %}
                 </div>
                 <div class="pdp-info">
-                    <span class="hero-eyebrow">نتیجه تست بدون ذخیره</span>
+                    <span class="hero-eyebrow">محصول تست بدون ذخیره</span>
                     <h1 class="pdp-title">{{ snapshot.title|default:'بدون عنوان' }}</h1>
                     <div class="meta-row">
                         <span class="badge">شناسه محصول: {{ snapshot.source_product_id }}</span>
                         <span class="badge gray">{{ snapshot.category_title|default:'بدون دسته' }}</span>
-                        <span class="badge {% if result.analysis_status == 'analyzed' %}ok{% elif result.analysis_status == 'analysis_error' %}error{% elif result.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}">{{ result.analysis_status|status_label }}</span>
+                        {% if result %}<span class="badge {% if result.analysis_status == 'analyzed' %}ok{% elif result.analysis_status == 'analysis_error' %}error{% elif result.analysis_status == 'no_match' %}gray{% else %}pending{% endif %}">{{ result.analysis_status|status_label }}</span>{% else %}<span class="badge pending">آماده تحلیل</span>{% endif %}
                     </div>
                     <div class="similar-results">
                         {% if test_analysis.product_url %}<a class="btn" href="{{ test_analysis.product_url }}" target="_blank">مشاهده محصول در باسلام</a>{% endif %}
-                        {% if result.product_url1 %}<a class="result-link" href="{{ result.product_url1 }}" target="_blank">محصول مشابه ۱</a>{% endif %}
-                        {% if result.product_url2 %}<a class="result-link" href="{{ result.product_url2 }}" target="_blank">محصول مشابه ۲</a>{% endif %}
-                        {% if result.product_url3 %}<a class="result-link" href="{{ result.product_url3 }}" target="_blank">محصول مشابه ۳</a>{% endif %}
-                        {% if not result.product_url1 and not result.product_url2 and not result.product_url3 %}<span class="badge gray">محصول مشابه ارزان‌تر پیدا نشد</span>{% endif %}
+                        <form method="post" action="{% url 'daily_off:test_product' %}" style="display:inline-flex;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="analyze_test_product">
+                            <input type="hidden" name="product_id" value="{{ snapshot.source_product_id }}">
+                            <button class="btn secondary" type="submit">تحلیل محصول</button>
+                        </form>
+                        {% if result %}
+                            {% if result.product_url1 %}<a class="result-link" href="{{ result.product_url1 }}" target="_blank">محصول مشابه ۱</a>{% endif %}
+                            {% if result.product_url2 %}<a class="result-link" href="{{ result.product_url2 }}" target="_blank">محصول مشابه ۲</a>{% endif %}
+                            {% if result.product_url3 %}<a class="result-link" href="{{ result.product_url3 }}" target="_blank">محصول مشابه ۳</a>{% endif %}
+                            {% if not result.product_url1 and not result.product_url2 and not result.product_url3 %}<span class="badge gray">محصول مشابه ارزان‌تر پیدا نشد</span>{% endif %}
+                        {% endif %}
                     </div>
-                    <div class="process-note">کاندیداهای دیده‌شده: {{ result.candidates_seen_count }} · یکتا: {{ result.candidates_deduped_count }} · جزئیات دریافت‌شده: {{ result.candidate_details_fetched_count }} · پذیرفته‌شده: {{ result.accepted_candidates_count }}</div>
+                    {% if result %}<div class="process-note">کاندیداهای دیده‌شده: {{ result.candidates_seen_count }} · یکتا: {{ result.candidates_deduped_count }} · جزئیات دریافت‌شده: {{ result.candidate_details_fetched_count }} · پذیرفته‌شده: {{ result.accepted_candidates_count }}</div>{% else %}<div class="process-note">محصول دریافت شد؛ برای اجرای موتور، روی «تحلیل محصول» بزن.</div>{% endif %}
                 </div>
                 <aside class="pdp-buybox">
                     <div class="buybox-row"><span class="metric-label">قیمت محصول</span><span class="offer-price">{{ snapshot.price|toman }}</span></div>
@@ -160,7 +172,7 @@
         <a class="btn ghost" href="{% url 'daily_off:run_detail' run.run_key %}">Reset</a>
     </form>
 
-    <div class="analysis-progress" data-analysis-progress>Product operations workspace آماده بررسی سریع محصولات اجرای امروز است.</div>
+    <div class="analysis-progress" data-analysis-progress>{% if inline_analysis_enabled %}تحلیل موقت داخل وب فعال است؛ هر درخواست فقط یک محصول را پردازش می‌کند.{% else %}Product operations workspace آماده بررسی سریع محصولات اجرای امروز است.{% endif %}</div>
 
     <section class="product-table-panel" aria-label="لیست محصولات اجرای امروز">
         <table class="product-data-table">
@@ -260,6 +272,7 @@
   const progress = document.querySelector('[data-analysis-progress]');
   const analyzeAllButton = document.querySelector('[data-analyze-all]');
   const stopButton = document.querySelector('[data-stop-analysis]');
+  const inlineAnalysisEnabled = {{ inline_analysis_enabled|yesno:'true,false' }};
   let shouldContinue = false;
 
   function setProgress(message) {
@@ -362,15 +375,15 @@
     if (terminalStatuses.includes(currentStatus) && !force) return;
 
     button.disabled = true;
-    button.textContent = 'در صف...';
-    setProgress('محصول برای تحلیل در صف worker قرار می‌گیرد...');
+    button.textContent = inlineAnalysisEnabled ? 'تحلیل...' : 'در صف...';
+    setProgress(inlineAnalysisEnabled ? 'تحلیل این محصول داخل سرویس وب شروع شد...' : 'محصول برای تحلیل در صف worker قرار می‌گیرد...');
     try {
       const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_dashboard', older_than_minutes: 30, force});
       if (data.ok) {
         const readableStatus = renderSnapshotState(snapshotId, data);
         if (data.queued || data.analysis_status === 'analysis_pending' || data.analysis_status === 'analysis_running') {
           button.textContent = 'پردازش...';
-          setProgress(`محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
+          setProgress(inlineAnalysisEnabled ? `محصول ${data.product_id} هنوز کامل نشده؛ وضعیت: <strong>${readableStatus}</strong>` : `محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
           setTimeout(() => pollSnapshotStatus(snapshotId, button, originalText), 1000);
         } else {
           const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
@@ -418,6 +431,33 @@
     if (confirm('پردازش صف این اجرا تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
   }
 
+  async function processInlineRun() {
+    if (!shouldContinue || !analyzeAllButton) return;
+    try {
+      const runKey = analyzeAllButton.dataset.runKey;
+      const data = await postJson('/api/analysis/process-next/', {run_key: runKey, limit: 1, actor: 'ui_inline_analysis'});
+      if (!data.ok) {
+        setProgress(`خطا در پردازش محصول بعدی: ${data.error || 'خطای نامشخص'}`);
+        shouldContinue = false;
+      } else {
+        const run = data.run || {};
+        const analysis = run.analysis || {};
+        setProgress(`تحلیل تک‌محصولی داخل وب · پردازش‌شده در این مرحله: <strong>${data.processed_count || 0}</strong> · باقی‌مانده: <strong>${data.pending_count || 0}</strong> · تحلیل‌شده: <strong>${analysis.analyzed || 0}</strong> · بدون نتیجه: <strong>${analysis.no_match || 0}</strong> · خطا: <strong>${analysis.error || 0}</strong>`);
+        if (data.has_more && shouldContinue) {
+          setTimeout(processInlineRun, 500);
+          return;
+        }
+      }
+    } catch (error) {
+      setProgress(`خطای ارتباط با سایت: ${error}`);
+      shouldContinue = false;
+    }
+    analyzeAllButton.disabled = false;
+    if (stopButton) stopButton.disabled = true;
+    shouldContinue = false;
+    if (confirm('پردازش تک‌محصولی این اجرا تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
+  }
+
   document.querySelectorAll('[data-analyze-snapshot]').forEach((button) => {
     button.addEventListener('click', () => analyzeSnapshot(button));
   });
@@ -428,8 +468,8 @@
       shouldContinue = true;
       analyzeAllButton.disabled = true;
       if (stopButton) stopButton.disabled = false;
-      setProgress('همه محصولات قابل تحلیل دوباره در صف worker قرار می‌گیرند...');
-      postJson(`/api/runs/${analyzeAllButton.dataset.runKey}/analysis-rerun/`, {actor: 'ui_dashboard_rerun'}).then((data) => {
+      setProgress(inlineAnalysisEnabled ? 'همه محصولات قابل تحلیل برای پردازش تک‌محصولی داخل وب آماده می‌شوند...' : 'همه محصولات قابل تحلیل دوباره در صف worker قرار می‌گیرند...');
+      postJson(`/api/runs/${analyzeAllButton.dataset.runKey}/analysis-rerun/`, {actor: inlineAnalysisEnabled ? 'ui_inline_rerun' : 'ui_dashboard_rerun'}).then((data) => {
         if (!data.ok) {
           setProgress(`خطا در شروع تحلیل مجدد: ${data.error || 'خطای نامشخص'}`);
           shouldContinue = false;
@@ -438,7 +478,11 @@
           return;
         }
         setProgress(`تحلیل مجدد شروع شد؛ محصولات صف‌شده: <strong>${data.queued_count || 0}</strong>`);
-        pollRunStatus();
+        if (inlineAnalysisEnabled) {
+          processInlineRun();
+        } else {
+          pollRunStatus();
+        }
       }).catch((error) => {
         setProgress(`خطای ارتباط با سایت: ${error}`);
         shouldContinue = false;

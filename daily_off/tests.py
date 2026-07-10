@@ -2,17 +2,19 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from config.settings import database_url_with_resolvable_service_host
 
 from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
 from .category_catalog import resolve_category_path
 from .family_router import route_family, route_product_family
+from .product_identity import compare_product_identities, extract_product_identity, plan_search_queries
 from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .semantic_rules import compare_semantic_cues
 from .services import (
     analyze_test_product,
+    fetch_test_product,
     requeue_run_analysis,
     unwrap_product_detail_payload,
 )
@@ -212,6 +214,137 @@ class FamilyRouterTests(SimpleTestCase):
 
         self.assertEqual(route['family'], 'generic')
         self.assertEqual(route['confidence'], 'low')
+
+
+class ProductIdentityTests(SimpleTestCase):
+    def assertIdentityBlocked(self, source, candidate, reason, **kwargs):
+        source_identity = extract_product_identity(title=source, text=source, **kwargs)
+        candidate_identity = extract_product_identity(title=candidate, text=candidate, **kwargs)
+        comparison = compare_product_identities(source_identity, candidate_identity)
+        self.assertIn(reason, comparison.blockers)
+        return comparison
+
+    def test_person_capacity_mismatch_blocks_tent_matches(self):
+        comparison = self.assertIdentityBlocked(
+            'چادر مسافرتی 8 نفره مدل برزنت برنو بلیزر',
+            'چادر مسافرتی 4 نفره مدل برزنت برنو بلیزر',
+            'identity_person_capacity_mismatch',
+            category_title='چادر مسافرتی',
+        )
+
+        self.assertEqual(comparison.evidence[0]['key'], 'person_counts')
+
+    def test_food_variety_and_base_mismatches_are_blocked(self):
+        self.assertIdentityBlocked(
+            'پودر فلفل سیاه اعلا 100 گرمی',
+            'پودر فلفل قرمز اعلا 100 گرمی',
+            'identity_food_variety_mismatch',
+            category_title='ادویه',
+        )
+        self.assertIdentityBlocked(
+            'کره نارگیل 500 گرمی ارگانیک',
+            'کره بادام زمینی 500 گرمی ارگانیک',
+            'identity_food_base_mismatch',
+            category_title='مواد غذایی',
+        )
+        self.assertIdentityBlocked(
+            'آرد جو دوسر کامل 1 کیلویی',
+            'آرد گندم کامل 1 کیلویی',
+            'identity_food_base_mismatch',
+            category_title='آرد',
+        )
+
+    def test_rice_form_and_variety_mismatches_are_blocked(self):
+        self.assertIdentityBlocked(
+            'برنج سرلاشه طارم هاشمی 10 کیلویی',
+            'برنج نیم دانه فجر 10 کیلویی',
+            'identity_food_variety_mismatch',
+            category_title='برنج',
+        )
+        comparison = self.assertIdentityBlocked(
+            'برنج سرلاشه طارم هاشمی 10 کیلویی',
+            'برنج نیم دانه طارم هاشمی 10 کیلویی',
+            'identity_food_form_mismatch',
+            category_title='برنج',
+        )
+        self.assertIn('identity_food_form_mismatch', comparison.blockers)
+
+    def test_model_and_capacity_mismatches_are_blocked(self):
+        self.assertIdentityBlocked(
+            'گوشی موبایل سامسونگ مدل GALAXY S26 Ultra ظرفیت 256 گیگ',
+            'گوشی موبایل سامسونگ مدل Galaxy S25 Ultra ظرفیت 256 گیگ',
+            'identity_model_mismatch',
+            category_title='گوشی موبایل',
+        )
+        self.assertIdentityBlocked(
+            'هارد اکسترنال 1 ترابایت وسترن دیجیتال',
+            'هارد اکسترنال 500 گیگ وسترن دیجیتال',
+            'identity_measurement_mismatch',
+            category_title='کالای دیجیتال',
+        )
+
+    def test_same_identity_is_not_blocked(self):
+        source_identity = extract_product_identity(
+            title='هارد اکسترنال 500 گیگ وسترن دیجیتال المنت',
+            text='هارد اکسترنال 500 گیگ وسترن دیجیتال المنت',
+            category_title='کالای دیجیتال',
+        )
+        candidate_identity = extract_product_identity(
+            title='هارد اکسترنال 500 گیگابایت مدل Element وسترن دیجیتال',
+            text='هارد اکسترنال 500 گیگابایت مدل Element وسترن دیجیتال',
+            category_title='کالای دیجیتال',
+        )
+
+        comparison = compare_product_identities(source_identity, candidate_identity)
+
+        self.assertNotIn('identity_measurement_mismatch', comparison.blockers)
+        self.assertNotIn('identity_low_anchor_overlap', comparison.blockers)
+
+
+class QueryPlannerTests(SimpleTestCase):
+    def test_query_planner_keeps_full_title_and_adds_identity_query(self):
+        snapshot = SimpleNamespace(
+            title='ایرپاد انکر مدل A2845 با گارانتی یک ساله ارسال رایگان',
+            category_title='هندزفری بلوتوثی',
+            category_parent_title='کالای دیجیتال',
+            navigation_slug='',
+            attributes_text='',
+            description='',
+            summary='',
+            unit_type='عددی',
+            unit_quantity=1,
+            net_weight=0,
+        )
+
+        queries = plan_search_queries(snapshot, max_queries=4)
+        query_texts = [query.query for query in queries]
+        query_kinds = [query.kind for query in queries]
+
+        self.assertIn('full_title', query_kinds)
+        self.assertIn('identity_anchor', query_kinds)
+        self.assertTrue(any('a2845' in text.lower() or 'A2845' in text for text in query_texts))
+        self.assertFalse(any('ارسال رایگان' in text for text in query_texts))
+        self.assertLessEqual(len(queries), 4)
+
+    def test_query_planner_builds_food_identity_query(self):
+        snapshot = SimpleNamespace(
+            title='برنج سرلاشه طارم هاشمی 10 کیلویی ارسال رایگان',
+            category_title='برنج',
+            category_parent_title='مواد غذایی',
+            navigation_slug='',
+            attributes_text='',
+            description='',
+            summary='',
+            unit_type='کیلوگرم',
+            unit_quantity=10,
+            net_weight=10,
+        )
+
+        queries = plan_search_queries(snapshot, max_queries=4)
+        identity_queries = [query.query for query in queries if query.kind == 'identity_anchor']
+
+        self.assertTrue(identity_queries)
+        self.assertTrue(any('برنج' in query and ('طارم' in query or 'هاشمی' in query) for query in identity_queries))
 
 
 class CandidatePrefilterTests(SimpleTestCase):
@@ -415,6 +548,46 @@ class ExportRunReportTests(TestCase):
 
 
 class ScoreCandidateSemanticBlockerTests(SimpleTestCase):
+    def snapshot(self, **overrides):
+        data = {
+            'id': 1,
+            'source_product_id': 100,
+            'title': 'مینی فرز دسته بلند دیمردار 1500 وات اصلی باس',
+            'description': '',
+            'summary': '',
+            'category_title': 'ابزار',
+            'category_parent_title': 'ابزارآلات',
+            'navigation_title': '',
+            'navigation_slug': 'tools',
+            'attributes_text': '',
+            'unit_type': 'عددی',
+            'unit_quantity': 1,
+            'net_weight': 0,
+            'price': 1_000_000,
+        }
+        data.update(overrides)
+        return SimpleNamespace(**data)
+
+    def candidate(self, **overrides):
+        data = {
+            'candidate_id': 200,
+            'candidate_title': 'مینی فرز دسته بلند دیمردار 2500 وات اصلی باس',
+            'candidate_description': '',
+            'candidate_summary': '',
+            'candidate_category_title': 'ابزار',
+            'candidate_category_parent_title': 'ابزارآلات',
+            'candidate_navigation_title': '',
+            'candidate_navigation_slug': 'tools',
+            'candidate_attributes_text': '',
+            'candidate_unit_type': 'عددی',
+            'candidate_unit_quantity': 1,
+            'candidate_net_weight': 0,
+            'candidate_price': 900_000,
+            'candidate_vendor_identifier': 'vendor',
+        }
+        data.update(overrides)
+        return data
+
     def test_semantic_blocker_rejects_otherwise_valid_candidate(self):
         snapshot = SimpleNamespace(
             id=1,
@@ -459,12 +632,221 @@ class ScoreCandidateSemanticBlockerTests(SimpleTestCase):
         self.assertEqual(result.raw_candidate['family_routing']['candidate']['family'], 'tools')
         self.assertEqual(DailyProductSnapshot.AnalysisStatus.PENDING, 'analysis_pending')
 
+    def test_identity_blocker_rejects_person_capacity_mismatch(self):
+        snapshot = self.snapshot(
+            title='چادر مسافرتی 8 نفره مدل برزنت برنو بلیزر',
+            category_title='چادر مسافرتی',
+            category_parent_title='خانه و آشپزخانه',
+            navigation_slug='',
+        )
+        candidate = self.candidate(
+            candidate_title='چادر مسافرتی 4 نفره مدل برزنت برنو بلیزر',
+            candidate_category_title='چادر مسافرتی',
+            candidate_category_parent_title='خانه و آشپزخانه',
+            candidate_price=900_000,
+        )
+        config = AnalysisConfig(min_similarity=0.1, min_cheaper_delta=1)
+
+        result = score_candidate(snapshot=snapshot, candidate=candidate, config=config)
+
+        self.assertFalse(result.accepted)
+        self.assertIn('identity_person_capacity_mismatch', result.rejection_reasons)
+        self.assertIn('source_identity', result.raw_candidate)
+        self.assertIn('candidate_identity', result.raw_candidate)
+        self.assertIn('match_policy', result.raw_candidate)
+
+    def test_identity_blocker_rejects_food_base_mismatch(self):
+        snapshot = self.snapshot(
+            title='کره نارگیل 500 گرمی ارگانیک',
+            category_title='مواد غذایی',
+            category_parent_title='خوراکی',
+            navigation_slug='',
+            unit_type='گرم',
+            unit_quantity=500,
+            net_weight=500,
+        )
+        candidate = self.candidate(
+            candidate_title='کره بادام زمینی 500 گرمی ارگانیک',
+            candidate_category_title='مواد غذایی',
+            candidate_category_parent_title='خوراکی',
+            candidate_unit_type='گرم',
+            candidate_unit_quantity=500,
+            candidate_net_weight=500,
+            candidate_price=900_000,
+        )
+        config = AnalysisConfig(min_similarity=0.1, min_cheaper_delta=1)
+
+        result = score_candidate(snapshot=snapshot, candidate=candidate, config=config)
+
+        self.assertFalse(result.accepted)
+        self.assertIn('identity_food_base_mismatch', result.rejection_reasons)
+        self.assertIn('identity_food_base_mismatch', result.raw_candidate['match_policy']['blockers'])
+
+    def test_identity_blocker_rejects_model_mismatch(self):
+        snapshot = self.snapshot(
+            title='گوشی موبایل سامسونگ مدل GALAXY S26 Ultra ظرفیت 256 گیگ',
+            category_title='گوشی موبایل',
+            category_parent_title='کالای دیجیتال',
+            navigation_slug='',
+        )
+        candidate = self.candidate(
+            candidate_title='گوشی موبایل سامسونگ مدل Galaxy S25 Ultra ظرفیت 256 گیگ',
+            candidate_category_title='گوشی موبایل',
+            candidate_category_parent_title='کالای دیجیتال',
+            candidate_price=900_000,
+        )
+        config = AnalysisConfig(min_similarity=0.1, min_cheaper_delta=1)
+
+        result = score_candidate(snapshot=snapshot, candidate=candidate, config=config)
+
+        self.assertFalse(result.accepted)
+        self.assertIn('identity_model_mismatch', result.rejection_reasons)
+
+    def test_good_same_identity_candidate_can_still_be_accepted(self):
+        snapshot = self.snapshot(
+            title='هارد اکسترنال 500 گیگ وسترن دیجیتال المنت',
+            category_title='کالای دیجیتال',
+            category_parent_title='کالای دیجیتال',
+            navigation_slug='',
+            unit_type='عددی',
+            unit_quantity=1,
+            net_weight=0,
+            price=1_000_000,
+        )
+        candidate = self.candidate(
+            candidate_title='هارد اکسترنال 500 گیگابایت مدل Element وسترن دیجیتال',
+            candidate_category_title='کالای دیجیتال',
+            candidate_category_parent_title='کالای دیجیتال',
+            candidate_unit_type='عددی',
+            candidate_unit_quantity=1,
+            candidate_net_weight=0,
+            candidate_price=900_000,
+        )
+        config = AnalysisConfig(min_similarity=0.1, min_cheaper_delta=1)
+
+        result = score_candidate(snapshot=snapshot, candidate=candidate, config=config)
+
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.rejection_reasons, [])
+
+
+class InlineAnalysisApiTests(TestCase):
+    def make_snapshot(self, *, analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING):
+        run = DailyRun.objects.create(business_date=date(2026, 7, 9), status=DailyRun.Status.RUNNING)
+        product = Product.objects.create(basalam_product_id=9001, latest_title='source product')
+        return DailyProductSnapshot.objects.create(
+            run=run,
+            product=product,
+            source_product_id=9001,
+            business_date=run.business_date,
+            title='source product one piece',
+            price=1_000_000,
+            unit_type='عددی',
+            unit_quantity=1,
+            fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
+            analysis_status=analysis_status,
+            status_row=analysis_status,
+        )
+
+    @override_settings(INLINE_ANALYSIS_ENABLED=False)
+    def test_snapshot_analysis_endpoint_keeps_queue_behavior_when_inline_disabled(self):
+        snapshot = self.make_snapshot()
+
+        response = self.client.post(
+            f'/api/analysis/snapshots/{snapshot.id}/run/',
+            data='{}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 202)
+        payload = response.json()
+        self.assertTrue(payload['ok'])
+        self.assertTrue(payload['queued'])
+        self.assertFalse(payload['inline_processed'])
+        snapshot.refresh_from_db()
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.PENDING)
+
+    @override_settings(INLINE_ANALYSIS_ENABLED=True)
+    @patch('daily_off.analysis_engine.analyze_snapshot')
+    def test_snapshot_analysis_endpoint_processes_requested_snapshot_inline(self, analyze_snapshot_mock):
+        snapshot = self.make_snapshot()
+        analyze_snapshot_mock.return_value.to_payload.return_value = {
+            'snapshot_id': snapshot.id,
+            'product_id': snapshot.source_product_id,
+            'product_url1': '',
+            'product_url2': '',
+            'product_url3': '',
+            'accepted_candidates_count': 0,
+            'analysis_status': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+            'status_row': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+            'analysis_candidates': [],
+        }
+
+        response = self.client.post(
+            f'/api/analysis/snapshots/{snapshot.id}/run/',
+            data='{}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['ok'])
+        self.assertTrue(payload['inline_processed'])
+        self.assertFalse(payload['queued'])
+        self.assertEqual(payload['analysis_status'], DailyProductSnapshot.AnalysisStatus.NO_MATCH)
+        analyze_snapshot_mock.assert_called_once()
+        snapshot.refresh_from_db()
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.NO_MATCH)
+
+    @override_settings(INLINE_ANALYSIS_ENABLED=True)
+    @patch('daily_off.analysis_engine.analyze_snapshot')
+    def test_finished_snapshot_without_force_is_not_reprocessed_inline(self, analyze_snapshot_mock):
+        snapshot = self.make_snapshot(analysis_status=DailyProductSnapshot.AnalysisStatus.ANALYZED)
+
+        response = self.client.post(
+            f'/api/analysis/snapshots/{snapshot.id}/run/',
+            data='{}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload['queue_state'], 'already_finished')
+        self.assertFalse(payload['inline_processed'])
+        analyze_snapshot_mock.assert_not_called()
+
+
 class ManualProductLabTests(TestCase):
     def test_unwrap_product_detail_payload_supports_common_shapes(self):
         self.assertEqual(unwrap_product_detail_payload({'id': 1})['id'], 1)
         self.assertEqual(unwrap_product_detail_payload({'data': {'id': 2}})['id'], 2)
         self.assertEqual(unwrap_product_detail_payload({'result': {'id': 3}})['id'], 3)
         self.assertEqual(unwrap_product_detail_payload({'product': {'id': 4}})['id'], 4)
+
+    @patch('daily_off.services.fetch_product_detail')
+    def test_fetch_test_product_only_fetches_product_without_analysis(self, fetch_product_detail):
+        fetch_product_detail.return_value = {
+            'id': 100,
+            'title': 'زعفران تست یک گرم',
+            'price': 900000,
+            'primary_price': 1000000,
+            'category': {'title': 'زعفران'},
+            'vendor': {'identifier': 'test-vendor', 'title': 'غرفه تست'},
+            'unit_type': {'name': 'گرم'},
+            'net_weight': 1,
+        }
+
+        result = fetch_test_product(product_id=100)
+
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['snapshot'].source_product_id, 100)
+        self.assertIsNone(result['result'])
+        self.assertIsNone(result['result_payload'])
+        self.assertEqual(DailyRun.objects.count(), 0)
+        self.assertEqual(Product.objects.count(), 0)
+        self.assertEqual(DailyProductSnapshot.objects.count(), 0)
+        self.assertEqual(AnalysisCandidate.objects.count(), 0)
+        self.assertEqual(AnalysisStatusLog.objects.count(), 0)
 
     @patch('daily_off.analysis_engine.fetch_candidate_detail')
     @patch('daily_off.analysis_engine.search_by_image', return_value=[])
@@ -493,8 +875,8 @@ class ManualProductLabTests(TestCase):
         self.assertEqual(AnalysisCandidate.objects.count(), 0)
         self.assertEqual(AnalysisStatusLog.objects.count(), 0)
 
-    @patch('daily_off.views.analyze_test_product')
-    def test_dashboard_test_product_tab_renders_without_manual_page(self, analyze_test_product_mock):
+    @patch('daily_off.views.fetch_test_product')
+    def test_dashboard_test_product_tab_renders_without_manual_page(self, fetch_test_product_mock):
         snapshot = SimpleNamespace(
             source_product_id=200,
             title='محصول تست',
@@ -506,27 +888,16 @@ class ManualProductLabTests(TestCase):
             vendor_identifier='test-vendor',
             weight_text='1 گرم',
         )
-        analyze_test_product_mock.return_value = {
+        fetch_test_product_mock.return_value = {
             'ok': True,
             'request_id': 'req-test',
             'snapshot': snapshot,
             'product_url': 'https://basalam.com/test-vendor/product/200',
-            'result_payload': {
-                'analysis_status': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
-                'accepted_candidates_count': 0,
-                'candidates_seen_count': 0,
-                'candidates_deduped_count': 0,
-                'candidate_details_fetched_count': 0,
-                'candidate_prefilter_rejected_count': 0,
-                'product_url1': '',
-                'product_url2': '',
-                'product_url3': '',
-                'accepted_candidates': [],
-                'rejected_candidates': [],
-            },
+            'result': None,
+            'result_payload': None,
         }
 
-        response = self.client.post('/test-product/', {'action': 'test_product', 'product_id': '200'})
+        response = self.client.post('/test-product/', {'action': 'fetch_test_product', 'product_id': '200'})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'تست محصول')

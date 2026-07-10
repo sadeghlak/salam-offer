@@ -15,6 +15,8 @@ import socket
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, urlunparse
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -128,6 +130,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASE_URL = os.getenv('DATABASE_URL')
+TEMP_SQLITE_MODE = env_bool('TEMP_SQLITE_MODE', default=False)
+INLINE_ANALYSIS_ENABLED = env_bool('INLINE_ANALYSIS_ENABLED', default=TEMP_SQLITE_MODE)
 
 if DATABASE_URL:
     DATABASE_URL = database_url_with_resolvable_service_host(DATABASE_URL)
@@ -151,13 +155,15 @@ if DATABASE_URL:
             'OPTIONS': database_options,
         }
     }
-else:
+elif DEBUG or TEMP_SQLITE_MODE:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+            'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'data' / 'salam_offer.sqlite3'),
         }
     }
+else:
+    raise ImproperlyConfigured('DATABASE_URL is required unless DJANGO_DEBUG or TEMP_SQLITE_MODE is enabled')
 
 
 # Password validation
@@ -206,6 +212,8 @@ BASALAM_TEXT_SEARCH_URL = os.getenv('BASALAM_TEXT_SEARCH_URL', 'https://services
 BASALAM_IMAGE_SEARCH_URL = os.getenv('BASALAM_IMAGE_SEARCH_URL', 'https://services.basalam.com/web/v1/search/image/search')
 BASALAM_PRODUCT_DETAIL_URL_TEMPLATE = os.getenv('BASALAM_PRODUCT_DETAIL_URL_TEMPLATE', 'https://openapi.basalam.com/v1/products/{product_id}')
 CHEAPER_ANALYSIS_TEXT_SEARCH_SIZE = int(os.getenv('CHEAPER_ANALYSIS_TEXT_SEARCH_SIZE', '20'))
+CHEAPER_ANALYSIS_ENABLE_MULTI_QUERY = env_bool('CHEAPER_ANALYSIS_ENABLE_MULTI_QUERY', default=False)
+CHEAPER_ANALYSIS_TEXT_SEARCH_MAX_QUERIES = int(os.getenv('CHEAPER_ANALYSIS_TEXT_SEARCH_MAX_QUERIES', '1'))
 CHEAPER_ANALYSIS_IMAGE_SEARCH_SIZE = int(os.getenv('CHEAPER_ANALYSIS_IMAGE_SEARCH_SIZE', '20'))
 CHEAPER_ANALYSIS_DETAIL_FETCH_LIMIT = int(os.getenv('CHEAPER_ANALYSIS_DETAIL_FETCH_LIMIT', '40'))
 CHEAPER_ANALYSIS_MIN_SIMILARITY = float(os.getenv('CHEAPER_ANALYSIS_MIN_SIMILARITY', '0.60'))

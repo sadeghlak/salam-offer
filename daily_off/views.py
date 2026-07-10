@@ -3,6 +3,7 @@ import logging
 from datetime import date
 from html import escape
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
@@ -16,10 +17,14 @@ from django.views.decorators.http import require_GET, require_POST
 from .category_catalog import resolve_category_path
 from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .services import (
+    AnalysisAlreadyFinished,
+    AnalysisAlreadyRunning,
     analysis_counts_for_run,
     analysis_payload_for_run,
     analyze_test_product,
+    fetch_test_product,
     claim_pending_analysis,
+    claim_snapshot_for_analysis,
     create_or_update_run,
     enqueue_snapshot_analysis,
     make_request_id,
@@ -27,6 +32,7 @@ from .services import (
     mark_product_fetch_error,
     next_missing_product_batch,
     process_analysis_batch,
+    process_analysis_snapshot,
     product_url,
     refresh_run_status,
     requeue_run_analysis,
@@ -37,6 +43,13 @@ from .services import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def runtime_mode_context():
+    return {
+        'temp_sqlite_mode': settings.TEMP_SQLITE_MODE,
+        'inline_analysis_enabled': settings.INLINE_ANALYSIS_ENABLED,
+    }
 
 
 def snapshot_to_workflow_payload(item):
@@ -420,6 +433,27 @@ def api_run_snapshot_analysis(request, snapshot_id):
     )
 
     try:
+        if settings.INLINE_ANALYSIS_ENABLED:
+            snapshot = claim_snapshot_for_analysis(
+                snapshot_id=snapshot_id,
+                force=force,
+                stale_minutes=stale_minutes,
+                request_id=request_id,
+                actor=actor,
+            )
+            outcome = process_analysis_snapshot(snapshot=snapshot, request_id=request_id, actor=actor)
+            stored_snapshot = outcome['snapshot']
+            payload = snapshot_analysis_payload(
+                stored_snapshot,
+                request_id=request_id,
+                queued=False,
+                queue_state='inline_processed' if outcome['ok'] else 'inline_error',
+                inline_processed=True,
+            )
+            if not outcome['ok']:
+                payload.update({'error': outcome.get('error', ''), 'retryable': outcome.get('retryable', False)})
+            return JsonResponse(payload, status=200 if outcome['ok'] else 500)
+
         snapshot, queued, queue_state = enqueue_snapshot_analysis(
             snapshot_id=snapshot_id,
             force=force,
@@ -427,6 +461,24 @@ def api_run_snapshot_analysis(request, snapshot_id):
             request_id=request_id,
             actor=actor,
         )
+    except AnalysisAlreadyFinished:
+        snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
+        return JsonResponse(snapshot_analysis_payload(
+            snapshot,
+            request_id=request_id,
+            queued=False,
+            queue_state='already_finished',
+            inline_processed=False,
+        ))
+    except AnalysisAlreadyRunning:
+        snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
+        return JsonResponse(snapshot_analysis_payload(
+            snapshot,
+            request_id=request_id,
+            queued=False,
+            queue_state='already_running',
+            inline_processed=False,
+        ))
     except ValueError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
     except ObjectDoesNotExist:
@@ -438,6 +490,7 @@ def api_run_snapshot_analysis(request, snapshot_id):
         request_id=request_id,
         queued=queued,
         queue_state=queue_state,
+        inline_processed=False,
     ), status=status_code)
 
 
@@ -828,6 +881,7 @@ def build_dashboard_context(request, selected_run=None):
         'today': today,
         'totals': dashboard_totals(),
         'active_page': 'dashboard',
+        **runtime_mode_context(),
     }
     if selected_run is not None:
         context.update(build_run_context(request, selected_run))
@@ -882,6 +936,7 @@ def test_product_context(*, product_id='', error_message='', analysis=None):
         'test_product_id': product_id,
         'test_error_message': error_message,
         'test_analysis': analysis,
+        **runtime_mode_context(),
     }
 
 
@@ -892,7 +947,8 @@ def dashboard_home(request):
 def test_product(request):
     context = build_dashboard_context(request)
     context.update(test_product_context())
-    if request.method == 'POST' and request.POST.get('action') == 'test_product':
+    if request.method == 'POST' and request.POST.get('action') in {'fetch_test_product', 'analyze_test_product', 'test_product'}:
+        action = request.POST.get('action')
         product_id_text = request.POST.get('product_id') or ''
         product_id = parse_int(product_id_text)
         if not product_id:
@@ -902,12 +958,15 @@ def test_product(request):
             ))
             return render(request, 'daily_off/dashboard.html', context)
         try:
-            result = analyze_test_product(product_id=product_id, actor='ui_dashboard_test_product')
+            if action == 'analyze_test_product':
+                result = analyze_test_product(product_id=product_id, actor='ui_dashboard_test_product')
+            else:
+                result = fetch_test_product(product_id=product_id)
             context.update(test_product_context(product_id=str(product_id), analysis=result))
         except ValueError as exc:
             context.update(test_product_context(product_id=str(product_id), error_message=str(exc)))
         except Exception as exc:
-            logger.exception('test product analysis failed product_id=%s', product_id)
+            logger.exception('test product action failed action=%s product_id=%s', action, product_id)
             context.update(test_product_context(product_id=str(product_id), error_message=f'خطا در تست محصول: {exc}'))
     return render(request, 'daily_off/dashboard.html', context)
 
@@ -941,4 +1000,5 @@ def product_detail(request, product_id):
         'snapshots': snapshots,
         'latest_snapshot': latest_snapshot,
         'latest_logs': latest_logs,
+        **runtime_mode_context(),
     })

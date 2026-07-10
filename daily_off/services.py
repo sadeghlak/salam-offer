@@ -163,6 +163,20 @@ def analysis_result_summary(result):
     }
 
 
+def fetch_test_product(*, product_id, request_id=''):
+    request_id = request_id or make_request_id()
+    raw_product = fetch_product_detail(product_id)
+    snapshot = build_ephemeral_snapshot(raw_product)
+    return {
+        'ok': True,
+        'request_id': request_id,
+        'snapshot': snapshot,
+        'product_url': product_url(snapshot.source_product_id, snapshot.vendor_identifier),
+        'result': None,
+        'result_payload': None,
+    }
+
+
 def analyze_test_product(*, product_id, request_id='', actor='ui_test_product'):
     from .analysis_engine import analyze_snapshot
 

@@ -28,7 +28,7 @@
             <a class="btn secondary" href="{% url 'daily_off:run_detail' latest_snapshot.run.run_key %}">مشاهده اجرای مربوط</a>
             <button class="btn" type="button" data-analyze-snapshot data-snapshot-id="{{ latest_snapshot.id }}" data-analysis-status="{{ latest_snapshot.analysis_status }}">تحلیل همین محصول</button>
         </div>
-        <div class="analysis-progress" data-analysis-progress>آماده تحلیل این محصول.</div>
+        <div class="analysis-progress" data-analysis-progress>{% if inline_analysis_enabled %}آماده تحلیل این محصول داخل سرویس وب.{% else %}آماده ارسال این محصول به صف تحلیل worker.{% endif %}</div>
 
         <div class="similar-results">
             {% if latest_snapshot.product_url1 %}<a class="result-link" href="{{ latest_snapshot.product_url1 }}" target="_blank">محصول مشابه ۱</a>{% endif %}
@@ -135,6 +135,7 @@
 (function () {
   const button = document.querySelector('[data-analyze-snapshot]');
   const progress = document.querySelector('[data-analysis-progress]');
+  const inlineAnalysisEnabled = {{ inline_analysis_enabled|yesno:'true,false' }};
   if (!button) return;
 
   function setProgress(message) {
@@ -188,8 +189,8 @@
     if (terminalStatuses.includes(currentStatus) && !force) return;
 
     button.disabled = true;
-    button.textContent = 'ارسال به صف...';
-    setProgress('محصول برای تحلیل در صف worker قرار می‌گیرد...');
+    button.textContent = inlineAnalysisEnabled ? 'تحلیل...' : 'ارسال به صف...';
+    setProgress(inlineAnalysisEnabled ? 'تحلیل این محصول داخل سرویس وب شروع شد...' : 'محصول برای تحلیل در صف worker قرار می‌گیرد...');
     try {
       const response = await fetch(`/api/analysis/snapshots/${snapshotId}/run/`, {
         method: 'POST',
@@ -201,7 +202,7 @@
         const readableStatus = statusText(data.analysis_status);
         if (data.queued || data.analysis_status === 'analysis_pending' || data.analysis_status === 'analysis_running') {
           button.textContent = 'در حال پردازش...';
-          setProgress(`محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
+          setProgress(inlineAnalysisEnabled ? `محصول ${data.product_id} هنوز کامل نشده؛ وضعیت: <strong>${readableStatus}</strong>` : `محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
           setTimeout(() => pollSnapshotStatus(snapshotId, originalText), 1000);
         } else {
           setProgress(`وضعیت محصول: <strong>${readableStatus}</strong>`);
