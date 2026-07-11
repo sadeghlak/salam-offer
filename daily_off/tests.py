@@ -2,6 +2,7 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.db import OperationalError
 from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from config.settings import database_url_with_resolvable_service_host
@@ -846,9 +847,74 @@ class SnapshotAnalysisQueueApiTests(TestCase):
         self.assertTrue(AnalysisStatusLog.objects.filter(snapshot=snapshot, actor='test_worker').exists())
 
 
+class HealthzTests(SimpleTestCase):
+    def test_healthz_does_not_touch_database(self):
+        response = self.client.get('/healthz/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'ok': True, 'service': 'salam-offer'})
+
+
+class DashboardFallbackTests(SimpleTestCase):
+    @patch('daily_off.views.build_dashboard_context', side_effect=OperationalError('missing table'))
+    def test_dashboard_renders_fallback_when_database_context_fails(self, build_dashboard_context_mock):
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'محصولات Daily Off')
+        self.assertContains(response, 'داشبورد موقتاً بدون داده نمایش داده می‌شود')
+
+
+class TestProductPageDatabaseFreeTests(SimpleTestCase):
+    def test_test_product_page_get_does_not_touch_database(self):
+        response = self.client.get('/test-product/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'تست محصول')
+        self.assertContains(response, 'برای تست، شناسه محصول را وارد کن')
+
+    @patch('daily_off.views.analyze_test_product')
+    def test_test_product_page_post_does_not_need_dashboard_database_context(self, analyze_test_product_mock):
+        snapshot = SimpleNamespace(
+            source_product_id=200,
+            title='محصول تست',
+            price=500000,
+            primary_price=600000,
+            photo_url='',
+            category_title='زعفران',
+            vendor_name='غرفه تست',
+            vendor_identifier='test-vendor',
+            weight_text='1 گرم',
+        )
+        analyze_test_product_mock.return_value = {
+            'ok': True,
+            'request_id': 'req-test',
+            'snapshot': snapshot,
+            'product_url': 'https://basalam.com/test-vendor/product/200',
+            'result_payload': {
+                'analysis_status': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+                'accepted_candidates_count': 0,
+                'candidates_seen_count': 0,
+                'candidates_deduped_count': 0,
+                'candidate_details_fetched_count': 0,
+                'candidate_prefilter_rejected_count': 0,
+                'product_url1': '',
+                'product_url2': '',
+                'product_url3': '',
+                'accepted_candidates': [],
+                'rejected_candidates': [],
+            },
+        }
+
+        response = self.client.post('/test-product/', {'action': 'test_product', 'product_id': '200'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'تست محصول')
+        self.assertContains(response, 'محصول تست')
+
+
 class ManualProductLabServiceTests(SimpleTestCase):
     databases = []
-
     def test_unwrap_product_detail_payload_supports_common_shapes(self):
         self.assertEqual(unwrap_product_detail_payload({'id': 1})['id'], 1)
         self.assertEqual(unwrap_product_detail_payload({'data': {'id': 2}})['id'], 2)

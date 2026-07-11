@@ -4,6 +4,7 @@ from datetime import date
 from html import escape
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db import DatabaseError, OperationalError, ProgrammingError
 from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -849,34 +850,66 @@ def test_product_context(*, product_id='', error_message='', analysis=None):
     }
 
 
+def healthz(request):
+    return JsonResponse({'ok': True, 'service': 'salam-offer'})
+
+
+def dashboard_fallback_context():
+    return {
+        'runs': [],
+        'sidebar_runs': [],
+        'selected_run': None,
+        'today': timezone.localdate(),
+        'totals': {},
+        'active_page': 'dashboard',
+    }
+
+
 def dashboard_home(request):
-    return render(request, 'daily_off/dashboard.html', build_dashboard_context(request))
+    try:
+        context = build_dashboard_context(request)
+    except (DatabaseError, OperationalError, ProgrammingError) as exc:
+        logger.exception('dashboard database context failed')
+        messages.warning(request, f'داشبورد موقتاً بدون داده نمایش داده می‌شود؛ اتصال یا migration دیتابیس نیاز به بررسی دارد: {exc}')
+        context = dashboard_fallback_context()
+    return render(request, 'daily_off/dashboard.html', context)
+
+
+def test_product_page_context(*, product_id='', error_message='', analysis=None):
+    context = {
+        'runs': [],
+        'sidebar_runs': [],
+        'selected_run': None,
+        'today': timezone.localdate(),
+        'totals': {},
+    }
+    context.update(test_product_context(product_id=product_id, error_message=error_message, analysis=analysis))
+    return context
 
 
 def test_product(request):
-    context = build_dashboard_context(request)
-    context.update(test_product_context())
+    context = test_product_page_context()
     if request.method == 'POST' and request.POST.get('action') in {'fetch_test_product', 'analyze_test_product', 'test_product'}:
         action = request.POST.get('action')
         product_id_text = request.POST.get('product_id') or ''
         product_id = parse_int(product_id_text)
         if not product_id:
-            context.update(test_product_context(
+            context = test_product_page_context(
                 product_id=product_id_text,
                 error_message='شناسه محصول معتبر وارد کنید.',
-            ))
+            )
             return render(request, 'daily_off/dashboard.html', context)
         try:
-            if action == 'analyze_test_product':
-                result = analyze_test_product(product_id=product_id, actor='ui_dashboard_test_product')
-            else:
+            if action == 'fetch_test_product':
                 result = fetch_test_product(product_id=product_id)
-            context.update(test_product_context(product_id=str(product_id), analysis=result))
+            else:
+                result = analyze_test_product(product_id=product_id, actor='ui_dashboard_test_product')
+            context = test_product_page_context(product_id=str(product_id), analysis=result)
         except ValueError as exc:
-            context.update(test_product_context(product_id=str(product_id), error_message=str(exc)))
+            context = test_product_page_context(product_id=str(product_id), error_message=str(exc))
         except Exception as exc:
             logger.exception('test product action failed action=%s product_id=%s', action, product_id)
-            context.update(test_product_context(product_id=str(product_id), error_message=f'خطا در تست محصول: {exc}'))
+            context = test_product_page_context(product_id=str(product_id), error_message=f'خطا در تست محصول: {exc}')
     return render(request, 'daily_off/dashboard.html', context)
 
 
