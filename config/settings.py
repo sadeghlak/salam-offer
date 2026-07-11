@@ -130,8 +130,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASE_URL = os.getenv('DATABASE_URL')
-TEMP_SQLITE_MODE = env_bool('TEMP_SQLITE_MODE', default=False)
-INLINE_ANALYSIS_ENABLED = env_bool('INLINE_ANALYSIS_ENABLED', default=TEMP_SQLITE_MODE)
 
 if DATABASE_URL:
     DATABASE_URL = database_url_with_resolvable_service_host(DATABASE_URL)
@@ -155,15 +153,15 @@ if DATABASE_URL:
             'OPTIONS': database_options,
         }
     }
-elif DEBUG or TEMP_SQLITE_MODE:
+elif DEBUG:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'data' / 'salam_offer.sqlite3'),
+            'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
         }
     }
 else:
-    raise ImproperlyConfigured('DATABASE_URL is required unless DJANGO_DEBUG or TEMP_SQLITE_MODE is enabled')
+    raise ImproperlyConfigured('DATABASE_URL is required unless DJANGO_DEBUG is enabled')
 
 
 # Password validation

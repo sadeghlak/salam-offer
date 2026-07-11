@@ -2,11 +2,11 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from config.settings import database_url_with_resolvable_service_host
 
-from .analysis_engine import AnalysisConfig, prefilter_candidates, score_candidate
+from .analysis_engine import AnalysisConfig, AnalysisResult, prefilter_candidates, score_candidate
 from .category_catalog import resolve_category_path
 from .family_router import route_family, route_product_family
 from .product_identity import compare_product_identities, extract_product_identity, plan_search_queries
@@ -15,34 +15,11 @@ from .semantic_rules import compare_semantic_cues
 from .services import (
     analyze_test_product,
     fetch_test_product,
+    process_analysis_batch,
     requeue_run_analysis,
     unwrap_product_detail_payload,
 )
 from .views import build_run_context, export_run_analysis_candidates_csv
-
-
-class DatabaseUrlFallbackTests(SimpleTestCase):
-    def test_rewrites_unresolvable_titan_postgres_stack_host_to_resolvable_service_host(self):
-        database_url = 'postgresql://user:pass@data-test.salam-test.svc.cluster.local:5432/dbname'
-
-        def fake_resolvable_host(hostname):
-            return hostname == 'data-test-postgresql-ha-pgpool.salam-test.svc.cluster.local'
-
-        with patch('config.settings.resolvable_host', side_effect=fake_resolvable_host):
-            rewritten = database_url_with_resolvable_service_host(database_url)
-
-        self.assertEqual(
-            rewritten,
-            'postgresql://user:pass@data-test-postgresql-ha-pgpool.salam-test.svc.cluster.local:5432/dbname',
-        )
-
-    def test_keeps_original_database_url_when_host_is_resolvable(self):
-        database_url = 'postgresql://user:pass@db.example.com:5432/dbname'
-
-        with patch('config.settings.resolvable_host', return_value=True):
-            rewritten = database_url_with_resolvable_service_host(database_url)
-
-        self.assertEqual(rewritten, database_url)
 
 
 class DatabaseUrlFallbackTests(SimpleTestCase):
@@ -730,8 +707,8 @@ class ScoreCandidateSemanticBlockerTests(SimpleTestCase):
         self.assertEqual(result.rejection_reasons, [])
 
 
-class InlineAnalysisApiTests(TestCase):
-    def make_snapshot(self, *, analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING):
+class SnapshotAnalysisQueueApiTests(TestCase):
+    def make_snapshot(self, *, analysis_status=DailyProductSnapshot.AnalysisStatus.PENDING, fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED):
         run = DailyRun.objects.create(business_date=date(2026, 7, 9), status=DailyRun.Status.RUNNING)
         product = Product.objects.create(basalam_product_id=9001, latest_title='source product')
         return DailyProductSnapshot.objects.create(
@@ -743,13 +720,16 @@ class InlineAnalysisApiTests(TestCase):
             price=1_000_000,
             unit_type='عددی',
             unit_quantity=1,
-            fetch_status=DailyProductSnapshot.FetchStatus.DETAILS_FETCHED,
+            fetch_status=fetch_status,
             analysis_status=analysis_status,
             status_row=analysis_status,
+            product_url1='https://basalam.com/source/product/1' if analysis_status == DailyProductSnapshot.AnalysisStatus.ANALYZED else '',
+            accepted_candidates_count=1 if analysis_status == DailyProductSnapshot.AnalysisStatus.ANALYZED else 0,
         )
 
-    @override_settings(INLINE_ANALYSIS_ENABLED=False)
-    def test_snapshot_analysis_endpoint_keeps_queue_behavior_when_inline_disabled(self):
+    @patch('daily_off.services.process_analysis_snapshot')
+    @patch('daily_off.analysis_engine.analyze_snapshot')
+    def test_snapshot_analysis_endpoint_queues_without_direct_processing(self, analyze_snapshot_mock, process_snapshot_mock):
         snapshot = self.make_snapshot()
 
         response = self.client.post(
@@ -762,25 +742,16 @@ class InlineAnalysisApiTests(TestCase):
         payload = response.json()
         self.assertTrue(payload['ok'])
         self.assertTrue(payload['queued'])
-        self.assertFalse(payload['inline_processed'])
+        self.assertEqual(payload['queue_state'], 'queued')
+        self.assertNotIn('inline_processed', payload)
+        analyze_snapshot_mock.assert_not_called()
+        process_snapshot_mock.assert_not_called()
         snapshot.refresh_from_db()
         self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.PENDING)
 
-    @override_settings(INLINE_ANALYSIS_ENABLED=True)
     @patch('daily_off.analysis_engine.analyze_snapshot')
-    def test_snapshot_analysis_endpoint_processes_requested_snapshot_inline(self, analyze_snapshot_mock):
-        snapshot = self.make_snapshot()
-        analyze_snapshot_mock.return_value.to_payload.return_value = {
-            'snapshot_id': snapshot.id,
-            'product_id': snapshot.source_product_id,
-            'product_url1': '',
-            'product_url2': '',
-            'product_url3': '',
-            'accepted_candidates_count': 0,
-            'analysis_status': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
-            'status_row': DailyProductSnapshot.AnalysisStatus.NO_MATCH,
-            'analysis_candidates': [],
-        }
+    def test_running_snapshot_without_force_is_not_requeued_or_processed(self, analyze_snapshot_mock):
+        snapshot = self.make_snapshot(analysis_status=DailyProductSnapshot.AnalysisStatus.RUNNING)
 
         response = self.client.post(
             f'/api/analysis/snapshots/{snapshot.id}/run/',
@@ -790,17 +761,14 @@ class InlineAnalysisApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertTrue(payload['ok'])
-        self.assertTrue(payload['inline_processed'])
         self.assertFalse(payload['queued'])
-        self.assertEqual(payload['analysis_status'], DailyProductSnapshot.AnalysisStatus.NO_MATCH)
-        analyze_snapshot_mock.assert_called_once()
+        self.assertEqual(payload['queue_state'], 'already_running')
+        analyze_snapshot_mock.assert_not_called()
         snapshot.refresh_from_db()
-        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.NO_MATCH)
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.RUNNING)
 
-    @override_settings(INLINE_ANALYSIS_ENABLED=True)
     @patch('daily_off.analysis_engine.analyze_snapshot')
-    def test_finished_snapshot_without_force_is_not_reprocessed_inline(self, analyze_snapshot_mock):
+    def test_finished_snapshot_without_force_is_not_requeued_or_processed(self, analyze_snapshot_mock):
         snapshot = self.make_snapshot(analysis_status=DailyProductSnapshot.AnalysisStatus.ANALYZED)
 
         response = self.client.post(
@@ -811,12 +779,76 @@ class InlineAnalysisApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
+        self.assertFalse(payload['queued'])
         self.assertEqual(payload['queue_state'], 'already_finished')
-        self.assertFalse(payload['inline_processed'])
         analyze_snapshot_mock.assert_not_called()
+        snapshot.refresh_from_db()
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.ANALYZED)
+
+    def test_finished_snapshot_with_force_is_reset_to_pending(self):
+        snapshot = self.make_snapshot(analysis_status=DailyProductSnapshot.AnalysisStatus.ANALYZED)
+
+        response = self.client.post(
+            f'/api/analysis/snapshots/{snapshot.id}/run/',
+            data='{"force": true}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 202)
+        payload = response.json()
+        self.assertTrue(payload['queued'])
+        self.assertEqual(payload['queue_state'], 'queued')
+        snapshot.refresh_from_db()
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.PENDING)
+        self.assertEqual(snapshot.status_row, DailyProductSnapshot.AnalysisStatus.PENDING)
+        self.assertEqual(snapshot.product_url1, '')
+        self.assertEqual(snapshot.accepted_candidates_count, 0)
+
+    def test_snapshot_without_fetched_details_returns_bad_request(self):
+        snapshot = self.make_snapshot(fetch_status=DailyProductSnapshot.FetchStatus.FETCH_ERROR)
+
+        response = self.client.post(
+            f'/api/analysis/snapshots/{snapshot.id}/run/',
+            data='{}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'snapshot details are not fetched')
+
+    def test_missing_snapshot_returns_not_found(self):
+        response = self.client.post(
+            '/api/analysis/snapshots/999999/run/',
+            data='{}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    @patch('daily_off.analysis_engine.analyze_snapshot')
+    def test_worker_batch_claims_and_processes_pending_snapshot(self, analyze_snapshot_mock):
+        snapshot = self.make_snapshot()
+        analyze_snapshot_mock.return_value = AnalysisResult(
+            snapshot_id=snapshot.id,
+            product_id=snapshot.source_product_id,
+            analysis_status=DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+            status_row=DailyProductSnapshot.AnalysisStatus.NO_MATCH,
+        )
+
+        result = process_analysis_batch(run_key=str(snapshot.run.run_key), limit=1, actor='test_worker')
+
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['processed_count'], 1)
+        self.assertEqual(result['success_count'], 1)
+        analyze_snapshot_mock.assert_called_once()
+        snapshot.refresh_from_db()
+        self.assertEqual(snapshot.analysis_status, DailyProductSnapshot.AnalysisStatus.NO_MATCH)
+        self.assertTrue(AnalysisStatusLog.objects.filter(snapshot=snapshot, actor='test_worker').exists())
 
 
-class ManualProductLabTests(TestCase):
+class ManualProductLabServiceTests(SimpleTestCase):
+    databases = []
+
     def test_unwrap_product_detail_payload_supports_common_shapes(self):
         self.assertEqual(unwrap_product_detail_payload({'id': 1})['id'], 1)
         self.assertEqual(unwrap_product_detail_payload({'data': {'id': 2}})['id'], 2)
@@ -824,7 +856,7 @@ class ManualProductLabTests(TestCase):
         self.assertEqual(unwrap_product_detail_payload({'product': {'id': 4}})['id'], 4)
 
     @patch('daily_off.services.fetch_product_detail')
-    def test_fetch_test_product_only_fetches_product_without_analysis(self, fetch_product_detail):
+    def test_fetch_test_product_only_fetches_product_without_database_access(self, fetch_product_detail):
         fetch_product_detail.return_value = {
             'id': 100,
             'title': 'زعفران تست یک گرم',
@@ -842,17 +874,12 @@ class ManualProductLabTests(TestCase):
         self.assertEqual(result['snapshot'].source_product_id, 100)
         self.assertIsNone(result['result'])
         self.assertIsNone(result['result_payload'])
-        self.assertEqual(DailyRun.objects.count(), 0)
-        self.assertEqual(Product.objects.count(), 0)
-        self.assertEqual(DailyProductSnapshot.objects.count(), 0)
-        self.assertEqual(AnalysisCandidate.objects.count(), 0)
-        self.assertEqual(AnalysisStatusLog.objects.count(), 0)
 
     @patch('daily_off.analysis_engine.fetch_candidate_detail')
     @patch('daily_off.analysis_engine.search_by_image', return_value=[])
     @patch('daily_off.analysis_engine.search_by_text', return_value=[])
     @patch('daily_off.services.fetch_product_detail')
-    def test_test_product_analysis_does_not_write_to_database(self, fetch_product_detail, search_by_text, search_by_image, fetch_candidate_detail):
+    def test_test_product_analysis_does_not_use_database(self, fetch_product_detail, search_by_text, search_by_image, fetch_candidate_detail):
         fetch_product_detail.return_value = {
             'id': 100,
             'title': 'زعفران تست یک گرم',
@@ -869,12 +896,9 @@ class ManualProductLabTests(TestCase):
         self.assertTrue(result['ok'])
         self.assertEqual(result['snapshot'].source_product_id, 100)
         self.assertEqual(result['result_payload']['analysis_status'], DailyProductSnapshot.AnalysisStatus.NO_MATCH)
-        self.assertEqual(DailyRun.objects.count(), 0)
-        self.assertEqual(Product.objects.count(), 0)
-        self.assertEqual(DailyProductSnapshot.objects.count(), 0)
-        self.assertEqual(AnalysisCandidate.objects.count(), 0)
-        self.assertEqual(AnalysisStatusLog.objects.count(), 0)
 
+
+class ManualProductLabTests(TestCase):
     @patch('daily_off.views.fetch_test_product')
     def test_dashboard_test_product_tab_renders_without_manual_page(self, fetch_test_product_mock):
         snapshot = SimpleNamespace(

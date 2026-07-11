@@ -3,7 +3,6 @@ import logging
 from datetime import date
 from html import escape
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
@@ -17,22 +16,17 @@ from django.views.decorators.http import require_GET, require_POST
 from .category_catalog import resolve_category_path
 from .models import AnalysisCandidate, AnalysisStatusLog, DailyProductSnapshot, DailyRun, Product
 from .services import (
-    AnalysisAlreadyFinished,
-    AnalysisAlreadyRunning,
     analysis_counts_for_run,
     analysis_payload_for_run,
     analyze_test_product,
     fetch_test_product,
     claim_pending_analysis,
-    claim_snapshot_for_analysis,
     create_or_update_run,
     enqueue_snapshot_analysis,
     make_request_id,
     mark_analysis_error,
     mark_product_fetch_error,
     next_missing_product_batch,
-    process_analysis_batch,
-    process_analysis_snapshot,
     product_url,
     refresh_run_status,
     requeue_run_analysis,
@@ -43,13 +37,6 @@ from .services import (
 
 
 logger = logging.getLogger(__name__)
-
-
-def runtime_mode_context():
-    return {
-        'temp_sqlite_mode': settings.TEMP_SQLITE_MODE,
-        'inline_analysis_enabled': settings.INLINE_ANALYSIS_ENABLED,
-    }
 
 
 def snapshot_to_workflow_payload(item):
@@ -433,27 +420,6 @@ def api_run_snapshot_analysis(request, snapshot_id):
     )
 
     try:
-        if settings.INLINE_ANALYSIS_ENABLED:
-            snapshot = claim_snapshot_for_analysis(
-                snapshot_id=snapshot_id,
-                force=force,
-                stale_minutes=stale_minutes,
-                request_id=request_id,
-                actor=actor,
-            )
-            outcome = process_analysis_snapshot(snapshot=snapshot, request_id=request_id, actor=actor)
-            stored_snapshot = outcome['snapshot']
-            payload = snapshot_analysis_payload(
-                stored_snapshot,
-                request_id=request_id,
-                queued=False,
-                queue_state='inline_processed' if outcome['ok'] else 'inline_error',
-                inline_processed=True,
-            )
-            if not outcome['ok']:
-                payload.update({'error': outcome.get('error', ''), 'retryable': outcome.get('retryable', False)})
-            return JsonResponse(payload, status=200 if outcome['ok'] else 500)
-
         snapshot, queued, queue_state = enqueue_snapshot_analysis(
             snapshot_id=snapshot_id,
             force=force,
@@ -461,24 +427,6 @@ def api_run_snapshot_analysis(request, snapshot_id):
             request_id=request_id,
             actor=actor,
         )
-    except AnalysisAlreadyFinished:
-        snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
-        return JsonResponse(snapshot_analysis_payload(
-            snapshot,
-            request_id=request_id,
-            queued=False,
-            queue_state='already_finished',
-            inline_processed=False,
-        ))
-    except AnalysisAlreadyRunning:
-        snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
-        return JsonResponse(snapshot_analysis_payload(
-            snapshot,
-            request_id=request_id,
-            queued=False,
-            queue_state='already_running',
-            inline_processed=False,
-        ))
     except ValueError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
     except ObjectDoesNotExist:
@@ -490,7 +438,6 @@ def api_run_snapshot_analysis(request, snapshot_id):
         request_id=request_id,
         queued=queued,
         queue_state=queue_state,
-        inline_processed=False,
     ), status=status_code)
 
 
@@ -498,42 +445,6 @@ def api_run_snapshot_analysis(request, snapshot_id):
 def api_snapshot_analysis_status(request, snapshot_id):
     snapshot = get_object_or_404(DailyProductSnapshot.objects.select_related('run', 'product'), id=snapshot_id)
     return JsonResponse(snapshot_analysis_payload(snapshot))
-
-
-@csrf_exempt
-@require_POST
-def api_process_next_analysis(request):
-    payload = parse_body(request)
-    if payload is None:
-        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
-
-    result = process_analysis_batch(
-        run_key=payload.get('run_key') or None,
-        business_date=parse_business_date(payload.get('business_date')) if payload.get('business_date') else None,
-        limit=clamp_limit(payload.get('limit'), default=1, maximum=3),
-        older_than_minutes=parse_int(payload.get('older_than_minutes'), 30),
-        request_id=payload.get('request_id') or make_request_id(),
-        actor=payload.get('actor') or 'django_api',
-    )
-    return JsonResponse(result)
-
-
-@csrf_exempt
-@require_POST
-def api_process_analysis_batch(request):
-    payload = parse_body(request)
-    if payload is None:
-        return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
-
-    result = process_analysis_batch(
-        run_key=payload.get('run_key') or None,
-        business_date=parse_business_date(payload.get('business_date')) if payload.get('business_date') else None,
-        limit=clamp_limit(payload.get('limit'), default=10, maximum=10),
-        older_than_minutes=parse_int(payload.get('older_than_minutes'), 30),
-        request_id=payload.get('request_id') or make_request_id(),
-        actor=payload.get('actor') or 'django_api',
-    )
-    return JsonResponse(result)
 
 
 @csrf_exempt
@@ -881,7 +792,6 @@ def build_dashboard_context(request, selected_run=None):
         'today': today,
         'totals': dashboard_totals(),
         'active_page': 'dashboard',
-        **runtime_mode_context(),
     }
     if selected_run is not None:
         context.update(build_run_context(request, selected_run))
@@ -936,7 +846,6 @@ def test_product_context(*, product_id='', error_message='', analysis=None):
         'test_product_id': product_id,
         'test_error_message': error_message,
         'test_analysis': analysis,
-        **runtime_mode_context(),
     }
 
 
@@ -1000,5 +909,4 @@ def product_detail(request, product_id):
         'snapshots': snapshots,
         'latest_snapshot': latest_snapshot,
         'latest_logs': latest_logs,
-        **runtime_mode_context(),
     })

@@ -45,10 +45,6 @@
     <span class="muted">Daily Off Workspace</span>
 </nav>
 
-{% if temp_sqlite_mode %}
-    <div class="error-note">حالت موقت SQLite فعال است؛ داده‌ها روی دیتابیس محلی وب ذخیره می‌شوند و ممکن است با deploy یا restart از بین بروند. تحلیل‌ها در همین سرویس وب، آرام و تک‌محصولی انجام می‌شود.</div>
-{% endif %}
-
 {% if active_page == 'test-product' %}
 <section class="ops-workspace">
     <header class="ops-topbar">
@@ -129,7 +125,7 @@
         </div>
         <div class="ops-topbar-actions">
             <button class="btn secondary" type="button" data-analyze-all data-run-key="{{ run.run_key }}">تحلیل مجدد همه</button>
-            <button class="btn secondary" type="button" data-stop-analysis disabled>توقف</button>
+            <button class="btn secondary" type="button" data-stop-analysis disabled>توقف پایش وضعیت</button>
             <a class="btn ghost" href="{% url 'daily_off:export_run_analysis_candidates_csv' run.run_key %}">Reports</a>
             <span class="btn ghost disabled">Analytics</span>
         </div>
@@ -172,7 +168,7 @@
         <a class="btn ghost" href="{% url 'daily_off:run_detail' run.run_key %}">Reset</a>
     </form>
 
-    <div class="analysis-progress" data-analysis-progress>{% if inline_analysis_enabled %}تحلیل موقت داخل وب فعال است؛ هر درخواست فقط یک محصول را پردازش می‌کند.{% else %}Product operations workspace آماده بررسی سریع محصولات اجرای امروز است.{% endif %}</div>
+    <div class="analysis-progress" data-analysis-progress>Product operations workspace آماده بررسی سریع محصولات اجرای امروز است. تحلیل‌ها در صف worker اجرا می‌شوند.</div>
 
     <section class="product-table-panel" aria-label="لیست محصولات اجرای امروز">
         <table class="product-data-table">
@@ -272,7 +268,6 @@
   const progress = document.querySelector('[data-analysis-progress]');
   const analyzeAllButton = document.querySelector('[data-analyze-all]');
   const stopButton = document.querySelector('[data-stop-analysis]');
-  const inlineAnalysisEnabled = {{ inline_analysis_enabled|yesno:'true,false' }};
   let shouldContinue = false;
 
   function setProgress(message) {
@@ -375,15 +370,15 @@
     if (terminalStatuses.includes(currentStatus) && !force) return;
 
     button.disabled = true;
-    button.textContent = inlineAnalysisEnabled ? 'تحلیل...' : 'در صف...';
-    setProgress(inlineAnalysisEnabled ? 'تحلیل این محصول داخل سرویس وب شروع شد...' : 'محصول برای تحلیل در صف worker قرار می‌گیرد...');
+    button.textContent = 'در صف...';
+    setProgress('محصول برای تحلیل در صف worker قرار می‌گیرد...');
     try {
       const data = await postJson(`/api/analysis/snapshots/${snapshotId}/run/`, {actor: 'ui_dashboard', older_than_minutes: 30, force});
       if (data.ok) {
         const readableStatus = renderSnapshotState(snapshotId, data);
         if (data.queued || data.analysis_status === 'analysis_pending' || data.analysis_status === 'analysis_running') {
           button.textContent = 'پردازش...';
-          setProgress(inlineAnalysisEnabled ? `محصول ${data.product_id} هنوز کامل نشده؛ وضعیت: <strong>${readableStatus}</strong>` : `محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
+          setProgress(`محصول ${data.product_id} در صف worker قرار گرفت؛ وضعیت: <strong>${readableStatus}</strong>`);
           setTimeout(() => pollSnapshotStatus(snapshotId, button, originalText), 1000);
         } else {
           const summary = data.accepted_candidates_count ? ` · نتایج پذیرفته‌شده: <strong>${data.accepted_candidates_count}</strong>` : '';
@@ -431,33 +426,6 @@
     if (confirm('پردازش صف این اجرا تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
   }
 
-  async function processInlineRun() {
-    if (!shouldContinue || !analyzeAllButton) return;
-    try {
-      const runKey = analyzeAllButton.dataset.runKey;
-      const data = await postJson('/api/analysis/process-next/', {run_key: runKey, limit: 1, actor: 'ui_inline_analysis'});
-      if (!data.ok) {
-        setProgress(`خطا در پردازش محصول بعدی: ${data.error || 'خطای نامشخص'}`);
-        shouldContinue = false;
-      } else {
-        const run = data.run || {};
-        const analysis = run.analysis || {};
-        setProgress(`تحلیل تک‌محصولی داخل وب · پردازش‌شده در این مرحله: <strong>${data.processed_count || 0}</strong> · باقی‌مانده: <strong>${data.pending_count || 0}</strong> · تحلیل‌شده: <strong>${analysis.analyzed || 0}</strong> · بدون نتیجه: <strong>${analysis.no_match || 0}</strong> · خطا: <strong>${analysis.error || 0}</strong>`);
-        if (data.has_more && shouldContinue) {
-          setTimeout(processInlineRun, 500);
-          return;
-        }
-      }
-    } catch (error) {
-      setProgress(`خطای ارتباط با سایت: ${error}`);
-      shouldContinue = false;
-    }
-    analyzeAllButton.disabled = false;
-    if (stopButton) stopButton.disabled = true;
-    shouldContinue = false;
-    if (confirm('پردازش تک‌محصولی این اجرا تمام شد. صفحه تازه‌سازی شود؟')) window.location.reload();
-  }
-
   document.querySelectorAll('[data-analyze-snapshot]').forEach((button) => {
     button.addEventListener('click', () => analyzeSnapshot(button));
   });
@@ -468,8 +436,8 @@
       shouldContinue = true;
       analyzeAllButton.disabled = true;
       if (stopButton) stopButton.disabled = false;
-      setProgress(inlineAnalysisEnabled ? 'همه محصولات قابل تحلیل برای پردازش تک‌محصولی داخل وب آماده می‌شوند...' : 'همه محصولات قابل تحلیل دوباره در صف worker قرار می‌گیرند...');
-      postJson(`/api/runs/${analyzeAllButton.dataset.runKey}/analysis-rerun/`, {actor: inlineAnalysisEnabled ? 'ui_inline_rerun' : 'ui_dashboard_rerun'}).then((data) => {
+      setProgress('همه محصولات قابل تحلیل دوباره در صف worker قرار می‌گیرند...');
+      postJson(`/api/runs/${analyzeAllButton.dataset.runKey}/analysis-rerun/`, {actor: 'ui_dashboard_rerun'}).then((data) => {
         if (!data.ok) {
           setProgress(`خطا در شروع تحلیل مجدد: ${data.error || 'خطای نامشخص'}`);
           shouldContinue = false;
@@ -478,11 +446,7 @@
           return;
         }
         setProgress(`تحلیل مجدد شروع شد؛ محصولات صف‌شده: <strong>${data.queued_count || 0}</strong>`);
-        if (inlineAnalysisEnabled) {
-          processInlineRun();
-        } else {
-          pollRunStatus();
-        }
+        pollRunStatus();
       }).catch((error) => {
         setProgress(`خطای ارتباط با سایت: ${error}`);
         shouldContinue = false;
@@ -497,7 +461,7 @@
       shouldContinue = false;
       stopButton.disabled = true;
       if (analyzeAllButton) analyzeAllButton.disabled = false;
-      setProgress('فرایند بعد از درخواست فعلی متوقف می‌شود.');
+      setProgress('پایش این صفحه متوقف شد؛ worker همچنان پردازش صف را ادامه می‌دهد.');
     });
   }
 })();

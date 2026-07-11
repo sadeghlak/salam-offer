@@ -25,18 +25,6 @@ TERMINAL_ANALYSIS_STATUSES = {
 }
 
 
-class AnalysisClaimError(Exception):
-    pass
-
-
-class AnalysisAlreadyRunning(AnalysisClaimError):
-    pass
-
-
-class AnalysisAlreadyFinished(AnalysisClaimError):
-    pass
-
-
 def make_request_id():
     return uuid4().hex[:16]
 
@@ -522,53 +510,6 @@ def set_analysis_status(*, snapshot, to_status, status_row=None, event_type=Anal
 
 
 @transaction.atomic
-def claim_snapshot_for_analysis(*, snapshot_id, force=False, stale_minutes=30, request_id='', actor='django_api'):
-    snapshot = DailyProductSnapshot.objects.select_for_update().select_related('run', 'product').get(id=snapshot_id)
-    now = timezone.now()
-    stale_cutoff = now - timezone.timedelta(minutes=max(1, as_int(stale_minutes, 30)))
-
-    if snapshot.analysis_status == DailyProductSnapshot.AnalysisStatus.RUNNING:
-        if force or snapshot.updated_at < stale_cutoff:
-            from_status = snapshot.analysis_status
-            snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
-            snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
-            snapshot.save(update_fields=['analysis_status', 'status_row', 'updated_at'])
-            log_analysis_status(
-                snapshot=snapshot,
-                event_type=AnalysisStatusLog.EventType.REQUEUED,
-                from_status=from_status,
-                to_status=snapshot.analysis_status,
-                status_row=snapshot.status_row,
-                message='تحلیل در حال اجرا قدیمی بود و دوباره به صف برگشت.',
-                metadata={'stale_minutes': stale_minutes, 'forced': force},
-                request_id=request_id,
-                actor=actor,
-            )
-        else:
-            raise AnalysisAlreadyRunning('snapshot is already running')
-
-    if snapshot.analysis_status in TERMINAL_ANALYSIS_STATUSES and not force:
-        raise AnalysisAlreadyFinished('snapshot analysis is already finished')
-
-    from_status = snapshot.analysis_status
-    snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.RUNNING
-    snapshot.status_row = DailyProductSnapshot.AnalysisStatus.RUNNING
-    snapshot.error_message = ''
-    snapshot.save(update_fields=['analysis_status', 'status_row', 'error_message', 'updated_at'])
-    log_analysis_status(
-        snapshot=snapshot,
-        event_type=AnalysisStatusLog.EventType.CLAIMED,
-        from_status=from_status,
-        to_status=snapshot.analysis_status,
-        status_row=snapshot.status_row,
-        message='محصول برای تحلیل سایت claim شد.',
-        request_id=request_id,
-        actor=actor,
-    )
-    return snapshot
-
-
-@transaction.atomic
 def mark_analysis_failed_for_retry(*, snapshot_id=None, run_key=None, product_id=None, error_message='', request_id='', actor='django_analysis'):
     snapshot = find_snapshot(snapshot_id=snapshot_id, run_key=run_key, product_id=product_id)
     from_status = snapshot.analysis_status
@@ -701,13 +642,18 @@ def enqueue_snapshot_analysis(*, snapshot_id, force=False, stale_minutes=30, req
 
     from_status = snapshot.analysis_status
     if force:
+        snapshot.product_url1 = ''
+        snapshot.product_url2 = ''
+        snapshot.product_url3 = ''
+        snapshot.accepted_candidates_count = 0
         snapshot.error_message = ''
+        AnalysisCandidate.objects.filter(snapshot=snapshot).delete()
 
     snapshot.analysis_status = DailyProductSnapshot.AnalysisStatus.PENDING
     snapshot.status_row = DailyProductSnapshot.AnalysisStatus.PENDING
     update_fields = ['analysis_status', 'status_row', 'updated_at']
     if force:
-        update_fields.append('error_message')
+        update_fields.extend(['product_url1', 'product_url2', 'product_url3', 'accepted_candidates_count', 'error_message'])
     snapshot.save(update_fields=update_fields)
     log_analysis_status(
         snapshot=snapshot,

@@ -1,27 +1,88 @@
+x-salam-offer-env: &salam-offer-env
+  DJANGO_DEBUG: "${DJANGO_DEBUG:-0}"
+  DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-change-me-for-hosting}"
+  DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,salam-offer.titanapp.dev}"
+  DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-https://salam-offer.titanapp.dev}"
+  DJANGO_CSRF_COOKIE_SECURE: "${DJANGO_CSRF_COOKIE_SECURE:-1}"
+  DJANGO_SESSION_COOKIE_SECURE: "${DJANGO_SESSION_COOKIE_SECURE:-1}"
+  DATABASE_URL: "${DATABASE_URL:?DATABASE_URL is required for docker compose}"
+  DATABASE_SSL_REQUIRE: "${DATABASE_SSL_REQUIRE:-0}"
+  DJANGO_LOG_LEVEL: "${DJANGO_LOG_LEVEL:-INFO}"
+  BASALAM_TEXT_SEARCH_URL: "${BASALAM_TEXT_SEARCH_URL:-https://services.basalam.com/web/v1/search/product/search}"
+  BASALAM_IMAGE_SEARCH_URL: "${BASALAM_IMAGE_SEARCH_URL:-https://services.basalam.com/web/v1/search/image/search}"
+  BASALAM_PRODUCT_DETAIL_URL_TEMPLATE: "${BASALAM_PRODUCT_DETAIL_URL_TEMPLATE:-https://openapi.basalam.com/v1/products/{product_id}}"
+  CHEAPER_ANALYSIS_TEXT_SEARCH_SIZE: "${CHEAPER_ANALYSIS_TEXT_SEARCH_SIZE:-20}"
+  CHEAPER_ANALYSIS_ENABLE_MULTI_QUERY: "${CHEAPER_ANALYSIS_ENABLE_MULTI_QUERY:-0}"
+  CHEAPER_ANALYSIS_TEXT_SEARCH_MAX_QUERIES: "${CHEAPER_ANALYSIS_TEXT_SEARCH_MAX_QUERIES:-1}"
+  CHEAPER_ANALYSIS_IMAGE_SEARCH_SIZE: "${CHEAPER_ANALYSIS_IMAGE_SEARCH_SIZE:-20}"
+  CHEAPER_ANALYSIS_DETAIL_FETCH_LIMIT: "${CHEAPER_ANALYSIS_DETAIL_FETCH_LIMIT:-40}"
+  CHEAPER_ANALYSIS_MIN_SIMILARITY: "${CHEAPER_ANALYSIS_MIN_SIMILARITY:-0.60}"
+  CHEAPER_ANALYSIS_MIN_CHEAPER_DELTA: "${CHEAPER_ANALYSIS_MIN_CHEAPER_DELTA:-1}"
+  CHEAPER_ANALYSIS_REQUEST_TIMEOUT_SECONDS: "${CHEAPER_ANALYSIS_REQUEST_TIMEOUT_SECONDS:-15}"
+  CHEAPER_ANALYSIS_MAX_BATCH_SIZE: "${CHEAPER_ANALYSIS_MAX_BATCH_SIZE:-3}"
+  CHEAPER_ANALYSIS_STALE_MINUTES: "${CHEAPER_ANALYSIS_STALE_MINUTES:-30}"
+  CHEAPER_ANALYSIS_ENABLE_IMAGE_SEARCH: "${CHEAPER_ANALYSIS_ENABLE_IMAGE_SEARCH:-1}"
+  CHEAPER_ANALYSIS_WEIGHT_EMBEDDING: "${CHEAPER_ANALYSIS_WEIGHT_EMBEDDING:-0.65}"
+  CHEAPER_ANALYSIS_WEIGHT_CATEGORY: "${CHEAPER_ANALYSIS_WEIGHT_CATEGORY:-0.20}"
+  CHEAPER_ANALYSIS_WEIGHT_WEIGHT: "${CHEAPER_ANALYSIS_WEIGHT_WEIGHT:-0.15}"
+
 services:
+  migrate:
+    build: .
+    image: salam_offer_app
+    container_name: salam_offer_migrate
+    restart: "no"
+    environment:
+      <<: *salam-offer-env
+      SKIP_COLLECTSTATIC: "1"
+    command: ["sh", "-c", "echo 'migrations completed'"]
+    volumes:
+      - salam_offer_static:/app/staticfiles
+
   web:
     build: .
+    image: salam_offer_app
     container_name: salam_offer_web
     restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:${PORT:-8000}"
     environment:
-      DJANGO_DEBUG: "${DJANGO_DEBUG:-0}"
-      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-change-me-for-hosting}"
-      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,salam-offer.titanapp.dev}"
-      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-https://salam-offer.titanapp.dev}"
-      DJANGO_CSRF_COOKIE_SECURE: "${DJANGO_CSRF_COOKIE_SECURE:-1}"
-      DJANGO_SESSION_COOKIE_SECURE: "${DJANGO_SESSION_COOKIE_SECURE:-1}"
-      DATABASE_URL: "${DATABASE_URL:-}"
-      DATABASE_SSL_REQUIRE: "${DATABASE_SSL_REQUIRE:-0}"
-      SQLITE_PATH: "${SQLITE_PATH:-/app/data/db.sqlite3}"
+      <<: *salam-offer-env
+      SKIP_STARTUP_MIGRATE: "1"
       PORT: "${PORT:-8000}"
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
       WEB_TIMEOUT: "${WEB_TIMEOUT:-120}"
     volumes:
-      - salam_offer_data:/app/data
       - salam_offer_static:/app/staticfiles
 
+  worker:
+    build: .
+    image: salam_offer_app
+    container_name: salam_offer_worker
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *salam-offer-env
+      SKIP_STARTUP_MIGRATE: "1"
+      SKIP_COLLECTSTATIC: "1"
+    command:
+      - python
+      - manage.py
+      - process_analysis_queue
+      - --loop
+      - --sleep
+      - "${WORKER_SLEEP_SECONDS:-2}"
+      - --limit
+      - "${WORKER_BATCH_LIMIT:-1}"
+      - --older-than-minutes
+      - "${WORKER_STALE_MINUTES:-30}"
+      - --actor
+      - "${WORKER_ACTOR:-analysis_worker}"
+
 volumes:
-  salam_offer_data:
   salam_offer_static:
