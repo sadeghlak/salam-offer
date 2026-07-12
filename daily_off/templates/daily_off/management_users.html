@@ -1,21 +1,6 @@
 {% extends 'daily_off/base.html' %}
 {% block title %}Salam Offer · مدیریت کاربران{% endblock %}
 
-{% block sidebar %}
-<aside class="ops-sidebar" aria-label="Salam Offer management navigation">
-    <a class="ops-brand" href="{% url 'daily_off:dashboard' %}">
-        <span class="ops-brand-mark">%</span>
-        <span class="ops-brand-title">Salam Offer</span>
-    </a>
-    <nav class="ops-nav">
-        <a class="ops-nav-link" href="{% url 'daily_off:dashboard' %}"><span class="ops-nav-dot"></span>بازگشت به سایت</a>
-        <span class="ops-nav-link active"><span class="ops-nav-dot"></span>مدیریت کاربران</span>
-        <span class="ops-nav-link disabled"><span class="ops-nav-dot"></span>فرایندها</span>
-        <span class="ops-nav-link disabled"><span class="ops-nav-dot"></span>گزارش رخدادها</span>
-    </nav>
-</aside>
-{% endblock %}
-
 {% block content %}
 <style>
     .management-shell { display: grid; gap: 12px; min-height: calc(100vh - 30px); }

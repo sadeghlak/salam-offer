@@ -776,24 +776,31 @@ def build_run_context(request, run):
     }
 
 
-def build_dashboard_context(request, selected_run=None):
+def sidebar_context(*, active_page='dashboard', selected_run=None):
     today = timezone.localdate()
     runs = list(DailyRun.objects.all()[:60])
     for run in runs:
         run.analysis_summary = compact_analysis_summary(analysis_counts_for_run(run))
         run.is_today = run.business_date == today
-
-    if selected_run is None:
-        selected_run = next((run for run in runs if run.business_date == today), None) or (runs[0] if runs else None)
-
-    context = {
+    return {
         'runs': runs,
         'sidebar_runs': runs,
         'selected_run': selected_run,
         'today': today,
         'totals': dashboard_totals(),
-        'active_page': 'dashboard',
+        'active_page': active_page,
     }
+
+
+def build_dashboard_context(request, selected_run=None):
+    context = sidebar_context(active_page='dashboard', selected_run=selected_run)
+    runs = context['runs']
+    today = context['today']
+
+    if selected_run is None:
+        selected_run = next((run for run in runs if run.business_date == today), None) or (runs[0] if runs else None)
+
+    context.update({'selected_run': selected_run})
     if selected_run is not None:
         context.update(build_run_context(request, selected_run))
     return context
@@ -835,10 +842,12 @@ def management_users_dashboard(request):
         'rejected': 1,
         'operators': 1,
     }
-    return render(request, 'daily_off/management_users.html', {
+    context = sidebar_context(active_page='management-users')
+    context.update({
         'access_requests': access_requests,
         'metrics': metrics,
     })
+    return render(request, 'daily_off/management_users.html', context)
 
 
 def test_product_context(*, product_id='', error_message='', analysis=None):
@@ -937,9 +946,11 @@ def product_detail(request, product_id):
     snapshots = product.daily_snapshots.select_related('run').order_by('-business_date', '-captured_at')
     latest_snapshot = snapshots.first()
     latest_logs = latest_snapshot.analysis_logs.all()[:50] if latest_snapshot else []
-    return render(request, 'daily_off/product_detail.html', {
+    context = sidebar_context(active_page='product-detail', selected_run=latest_snapshot.run if latest_snapshot else None)
+    context.update({
         'product': product,
         'snapshots': snapshots,
         'latest_snapshot': latest_snapshot,
         'latest_logs': latest_logs,
     })
+    return render(request, 'daily_off/product_detail.html', context)
