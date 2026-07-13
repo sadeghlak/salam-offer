@@ -381,7 +381,9 @@
             </div>
             {% if selected_run %}<a class="ops-nav-link" href="{% url 'daily_off:export_run_analysis_candidates_csv' selected_run.run_key %}"><span class="ops-nav-dot"></span>گزارش‌گیری</a>{% endif %}
             <a class="ops-nav-link {% if active_page == 'test-product' %}active{% endif %}" href="{% url 'daily_off:test_product' %}"><span class="ops-nav-dot"></span>تست محصول</a>
-            <a class="ops-nav-link {% if active_page == 'management-users' %}active{% endif %}" href="{% url 'daily_off:management_users' %}"><span class="ops-nav-dot"></span>مدیریت کاربران</a>
+            {% if show_management_users_nav %}
+                <a class="ops-nav-link {% if active_page == 'management-users' %}active{% endif %}" href="{% url 'daily_off:management_users' %}"><span class="ops-nav-dot"></span>مدیریت کاربران</a>
+            {% endif %}
         </nav>
     </aside>
     <main class="ops-main">
